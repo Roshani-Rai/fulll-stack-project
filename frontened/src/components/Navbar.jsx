@@ -1,11 +1,20 @@
 import React, { useState } from 'react'
 import { assets } from '../assets/assets'
 import { NavLink, useNavigate } from 'react-router-dom'
+import { useContext } from 'react'
+import { AppContext } from '../context/AppContext'
 
 const Navbar = () => {
+  const {token,setToken} = useContext(AppContext)
+
+
   const navigate = useNavigate();
   const [showMenu, setShowMenu] = useState(false);
-  const [token, setToken] = useState(true);
+
+  const logout =()=>{
+    setToken(false)
+    localStorage.removeItem('token')
+  }
 
   const navLinkClass = ({ isActive }) =>
     isActive
@@ -31,8 +40,8 @@ const Navbar = () => {
             <div className="flex flex-row items-center gap-2 cursor-pointer group relative">
               <img className='w-8 h-8 rounded-full object-cover' src={assets.profile_pic} alt="profile" />
               <img className='w-2.5' src={assets.dropdown_icon} alt="" />
-              <div className='absolute top-full right-0 mt-2 text-sm font-medium text-gray-600 z-20 hidden group-hover:block'>
-                <div className='min-w-48 bg-white border border-gray-100 shadow-lg rounded-xl flex flex-col gap-1 p-2'>
+              <div className='absolute top-full right-0 pt-2 text-sm font-medium text-gray-700 z-20 hidden group-hover:block'>
+                <div className='min-w-48 bg-gray-200 border border-gray-100 shadow-lg rounded-xl flex flex-col gap-1 p-2'>
                   <p
                     onClick={() => navigate('/my-profile')}
                     className='px-4 py-2 rounded-lg hover:bg-gray-50 hover:text-black cursor-pointer transition-colors'>
@@ -44,7 +53,7 @@ const Navbar = () => {
                     My Appointments
                   </p>
                   <p
-                    onClick={() => setToken(false)}
+                    onClick={ logout}
                     className='px-4 py-2 rounded-lg hover:bg-red-50 hover:text-red-500 cursor-pointer transition-colors'>
                     Logout
                   </p>

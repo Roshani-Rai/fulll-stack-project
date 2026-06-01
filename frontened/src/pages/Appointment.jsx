@@ -40,9 +40,9 @@ const Appointment = () => {
     datetime: new Date(current),
     time: formTime
   });
-  current.setMinutes(current.getMinutes() + 30); // ✅ Fix 1: advance by 30 min
+  current.setMinutes(current.getMinutes() + 30); 
 }
-setDocSlot(prev => ([...prev, timeslot]));        // ✅ Fix 2: AFTER the while loop
+setDocSlot(prev => ([...prev, timeslot]));       
     }
   }
 

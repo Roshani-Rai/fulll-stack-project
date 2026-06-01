@@ -13,6 +13,8 @@ import Myapp from './pages/Myapp'
 import Footer from './components/Footer.jsx'
 import Appointment from './pages/Appointment'
 import AppContextProvider from './context/AppContext.jsx'
+import {ToastContainer , toast} from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
 const router = createBrowserRouter([
   {
     path: '/',
@@ -110,6 +112,7 @@ createRoot(document.getElementById('root')).render(
   <StrictMode>
     <AppContextProvider>
   <RouterProvider router={router} />
+  <ToastContainer />
 </AppContextProvider>
   </StrictMode>
 )

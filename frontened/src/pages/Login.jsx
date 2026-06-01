@@ -1,6 +1,11 @@
 import React, { useState } from 'react'
+import { AppContext } from '../context/AppContext';
+import { useContext } from 'react';
+import axios from 'axios'
+import {toast} from 'react-toastify'
 
 const Login = () => {
+  const {backend_url , token,setToken} = useContext(AppContext)
   const [state, setState] = useState('Sign Up');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -8,6 +13,32 @@ const Login = () => {
 
   const onSubmit = async (event) => {
     event.preventDefault();
+    try {
+      if(state === 'Sign Up'){
+        const {data}= await axios.post(backend_url + '/api/user/register' , {name,email,password})
+        if(data.success){
+          toast.success("Account created Successfully!!")
+          localStorage.setItem('token',data.token)
+          setToken(data.token)
+        }
+        else{
+          toast.error(data.message)
+        }
+      }
+      else{
+        const {data}= await axios.post(backend_url + '/api/user/login' , {email,password})
+        if(data.success){
+          toast.success("User logged in Successfully!!")
+          localStorage.setItem('token',data.token)
+          setToken(data.token)
+        }
+        else{
+          toast.error(data.message)
+        }
+      }
+    } catch (error) {
+      toast.error(error.message)
+    }
   }
 
   return (
@@ -34,6 +65,7 @@ const Login = () => {
             <input
               type='text'
               placeholder='John Doe'
+               autoComplete='new-password'
               onChange={(e) => setName(e.target.value)}
               value={name}
               required
@@ -47,6 +79,7 @@ const Login = () => {
           <label className='text-sm font-medium text-gray-700'>Email</label>
           <input
             type='email'
+             autoComplete='new-password'
             placeholder='you@example.com'
             onChange={(e) => setEmail(e.target.value)}
             value={email}                            
@@ -60,6 +93,7 @@ const Login = () => {
           <label className='text-sm font-medium text-gray-700'>Password</label>
           <input
             type='password'
+            autoComplete='new-password'
             placeholder='••••••••'
             onChange={(e) => setPassword(e.target.value)}
             value={password}                         

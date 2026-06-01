@@ -1,0 +1,69 @@
+import React from 'react'
+import { AdminContext } from '../context/AdminContext'
+import { useContext, useEffect } from 'react'
+
+const ListDoctor = () => {
+  const { doctors, atoken, getAllDoctors , changeAvailability} = useContext(AdminContext)
+
+  useEffect(() => {
+    if (atoken) getAllDoctors()
+  }, [atoken])
+
+  return (
+    <div className='m-1 w-full'>
+      <p className='ml-12 sm:ml-0 text-xl font-semibold text-gray-700 mb-6'>
+        All <span className='text-primary'>Doctors</span>
+      </p>
+
+      <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'>
+        {doctors.map((item, index) => (
+          <div
+            key={index}
+            className='border border-blue-200 rounded-xl overflow-hidden cursor-pointer hover:-translate-y-2 transition-all duration-300 bg-white hover:shadow-md'
+          >
+            <img
+              className='bg-blue-50 hover:bg-primary w-full object-cover'
+              src={item.image}
+              alt={item.name}
+            />
+
+            <div className='p-4'>
+              {/* Toggle */}
+              <div className='flex items-center justify-between mt-1 mb-3'>
+                <label className='flex items-center gap-2 cursor-pointer'>
+                  <div className='relative'>
+                    <input
+                      type='checkbox'
+                      checked={item.available}
+                      onChange={() => changeAvailability(item._id)}
+                      className='sr-only'
+                    />
+                    <div className={`w-9 h-5 rounded-full transition-colors duration-200 ${item.available ? 'bg-blue-500' : 'bg-gray-300'}`}>
+                      <div className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 ${item.available ? 'translate-x-4' : 'translate-x-0'}`} />
+                    </div>
+                  </div>
+                  <span className={`text-sm font-medium ${item.available ? 'text-blue-500' : 'text-gray-400'}`}>
+                    {item.available ? 'Available' : 'Not Available'}
+                  </span>
+                </label>
+              </div>
+
+              <p className='text-gray-900 font-medium text-base leading-tight'>{item.name}</p>
+              <p className='text-gray-500 text-sm mt-0.5'>{item.speciality}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Empty state */}
+      {doctors.length === 0 && (
+        <div className='flex flex-col items-center justify-center py-20 text-gray-400'>
+          <p className='text-lg font-medium'>No doctors found</p>
+          <p className='text-sm mt-1'>Add a doctor to see them listed here</p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default ListDoctor
