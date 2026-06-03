@@ -5,11 +5,16 @@ import { useContext } from 'react'
 import { AppContext } from '../context/AppContext'
 
 const Navbar = () => {
-  const {token,setToken} = useContext(AppContext)
+  const {token,setToken,user} = useContext(AppContext)
 
 
   const navigate = useNavigate();
   const [showMenu, setShowMenu] = useState(false);
+  const [image, setImage] = useState(false)
+
+  const profileImage = user && user.image && user.image.startsWith('http')
+    ? user.image
+    : assets.upload_area
 
   const logout =()=>{
     setToken(false)
@@ -25,7 +30,7 @@ const Navbar = () => {
     <div className="flex flex-row mt-6 justify-center">
       <div className='w-[90%] md:w-[76%] flex items-center justify-between px-6 py-4 shadow-md rounded-xl'>
 
-        <img src={assets.logo} alt="logo" className='h-8' />
+        <img src={assets.logo}  alt="" alt="logo" className='h-8' />
 
         <ul className='hidden md:flex items-center gap-6 font-medium'>
           <li><NavLink to='/' className={navLinkClass}>Home</NavLink></li>
@@ -38,7 +43,7 @@ const Navbar = () => {
 
           {token ? (
             <div className="flex flex-row items-center gap-2 cursor-pointer group relative">
-              <img className='w-8 h-8 rounded-full object-cover' src={assets.profile_pic} alt="profile" />
+              <img className='w-8 h-8 rounded-full object-cover' src={profileImage} alt="profile" />
               <img className='w-2.5' src={assets.dropdown_icon} alt="" />
               <div className='absolute top-full right-0 pt-2 text-sm font-medium text-gray-700 z-20 hidden group-hover:block'>
                 <div className='min-w-48 bg-gray-200 border border-gray-100 shadow-lg rounded-xl flex flex-col gap-1 p-2'>

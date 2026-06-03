@@ -1,11 +1,39 @@
 import React, { useContext, useState } from 'react'
 import { AppContext } from '../context/AppContext';
 import { assets } from '../assets/assets';
+import axios from 'axios';
+import { toast } from 'react-toastify';
 
 const MyProfile = () => {
-  const { user, setUser } = useContext(AppContext)
+  const { user, setUser, token, backend_url, loadUserProfile } = useContext(AppContext)
   const [isEdit, setIsEdit] = useState(false);
-  const [image, setImage] = useState(null)
+  const [image, setImage] = useState(false)
+
+  const updateUserProfile = async()=>{
+    try {
+      const formData = new FormData()
+      formData.append('name',user.name)
+      formData.append('phone',user.phone)
+      formData.append('address',JSON.stringify(user.address))
+      formData.append('gender',user.gender)
+      formData.append('dob',user.dob)
+      image && formData.append('image',image)
+      const {data} = await axios.post(backend_url + '/api/user/update-profile' ,formData,{headers : {token}})
+      if(data.success){
+        toast.success(data.message)
+        await loadUserProfile()
+        setIsEdit(false)
+        setImage(false)
+      }
+      else{
+        toast.error(data.message)
+      }
+    } catch (error) {
+      console.log(error)
+      toast.error(error.message)
+    }
+  }
+
   const inputClass = 'border border-gray-300 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary transition w-full'
 
   return user && (
@@ -16,9 +44,14 @@ const MyProfile = () => {
         <div className='flex flex-col items-center gap-3'>
           <label htmlFor='profile-upload' className={`relative ${isEdit ? 'cursor-pointer' : 'cursor-default'}`}>
             <img
-              src={image ? URL.createObjectURL(image) : (user.image || assets.upload_icon)}
-              alt="Profile"
-              className='w-24 h-24 rounded-full object-cover border-4 border-primary shadow'
+              src={image 
+                ? URL.createObjectURL(image) 
+                  : (user.image && user.image.startsWith('http')) 
+                     ? user.image 
+                     : assets.upload_area
+                    }
+              alt=""
+              className={`w-24 h-24 rounded-full object-cover border-4 border-primary shadow ${image ? '' :'bg-blue-50'}`}
             />
             {isEdit && (
               <div className='absolute bottom-0 right-0 bg-primary rounded-full p-1.5 shadow'>
@@ -27,16 +60,15 @@ const MyProfile = () => {
             )}
           </label>
 
-          {isEdit && (
-            <input
-              id='profile-upload'
-              type='file'
-              accept='image/*'
-              className='hidden'
-              onChange={e => setImage(e.target.files[0])}
-            />
-          )}
-          
+          {/* ✅ Always in DOM */}
+          <input
+            id='profile-upload'
+            type='file'
+            accept='image/*'
+            className='hidden'
+            onChange={e => setImage(e.target.files[0])}
+          />
+
           {isEdit
             ? <input
                 type='text'
@@ -58,7 +90,7 @@ const MyProfile = () => {
             {/* Email */}
             <div className='flex flex-col gap-1'>
               <p className='text-sm font-medium text-gray-500'>Email</p>
-              <p className='text-sm text-primary font-medium'>{user.email}</p>  {/* ✅ */}
+              <p className='text-[16px] text-black   rounded-lg py-1  font-medium'>{user.email}</p>
             </div>
 
             {/* Phone */}
@@ -68,10 +100,10 @@ const MyProfile = () => {
                 ? <input
                     type='text'
                     value={user.phone}
-                    onChange={e => setUser(prev => ({ ...prev, phone: e.target.value }))}  // ✅
+                    onChange={e => setUser(prev => ({ ...prev, phone: e.target.value }))}
                     className={inputClass}
                   />
-                : <p className='text-sm text-gray-700'>{user.phone}</p>  // ✅
+                : <p className='text-sm text-gray-700'>{user.phone}</p>
               }
             </div>
 
@@ -83,13 +115,13 @@ const MyProfile = () => {
                     <input
                       type='text'
                       value={user.address.line1}
-                      onChange={e => setUser(prev => ({ ...prev, address: { ...prev.address, line1: e.target.value } }))}  // ✅
+                      onChange={e => setUser(prev => ({ ...prev, address: { ...prev.address, line1: e.target.value } }))}
                       className={inputClass}
                     />
                     <input
                       type='text'
                       value={user.address.line2}
-                      onChange={e => setUser(prev => ({ ...prev, address: { ...prev.address, line2: e.target.value } }))}  // ✅
+                      onChange={e => setUser(prev => ({ ...prev, address: { ...prev.address, line2: e.target.value } }))}
                       className={inputClass}
                     />
                   </div>
@@ -114,14 +146,14 @@ const MyProfile = () => {
               {isEdit
                 ? <select
                     value={user.gender}
-                    onChange={e => setUser(prev => ({ ...prev, gender: e.target.value }))}  // ✅
+                    onChange={e => setUser(prev => ({ ...prev, gender: e.target.value }))}
                     className={inputClass}
                   >
                     <option value='Male'>Male</option>
                     <option value='Female'>Female</option>
                     <option value='Other'>Other</option>
                   </select>
-                : <p className='text-sm text-gray-700'>{user.gender}</p>  // ✅
+                : <p className='text-sm text-gray-700'>{user.gender}</p>
               }
             </div>
 
@@ -132,10 +164,10 @@ const MyProfile = () => {
                 ? <input
                     type='date'
                     value={user.dob}
-                    onChange={e => setUser(prev => ({ ...prev, dob: e.target.value }))}  // ✅
+                    onChange={e => setUser(prev => ({ ...prev, dob: e.target.value }))}
                     className={inputClass}
                   />
-                : <p className='text-sm text-gray-700'>{user.dob}</p>  // ✅
+                : <p className='text-sm text-gray-700'>{user.dob}</p>
               }
             </div>
           </div>
@@ -145,7 +177,7 @@ const MyProfile = () => {
         <div className='flex justify-center mt-2'>
           {isEdit
             ? <button
-                onClick={() => setIsEdit(false)}
+                onClick={updateUserProfile}
                 className='bg-primary text-white px-10 py-2.5 rounded-full text-sm font-semibold hover:opacity-90 transition-all duration-300'
               >
                 Save Changes
@@ -158,6 +190,7 @@ const MyProfile = () => {
               </button>
           }
         </div>
+
       </div>
     </div>
   )

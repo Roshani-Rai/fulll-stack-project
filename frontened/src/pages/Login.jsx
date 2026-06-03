@@ -3,9 +3,13 @@ import { AppContext } from '../context/AppContext';
 import { useContext } from 'react';
 import axios from 'axios'
 import {toast} from 'react-toastify'
+import { useNavigate } from 'react-router-dom'
+import { auth, googleProvider } from '../context/firebase'
+import { signInWithPopup } from 'firebase/auth'
 
 const Login = () => {
   const {backend_url , token,setToken} = useContext(AppContext)
+  const navigate = useNavigate()
   const [state, setState] = useState('Sign Up');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -35,6 +39,25 @@ const Login = () => {
         else{
           toast.error(data.message)
         }
+      }
+    } catch (error) {
+      toast.error(error.message)
+    }
+  }
+
+  // ✅ Google login — added
+  const loginWithGoogle = async () => {
+    try {
+      const result = await signInWithPopup(auth, googleProvider)
+      const idToken = await result.user.getIdToken()
+      const { data } = await axios.post(backend_url + '/api/user/google-login', { idToken })
+      if (data.success) {
+        toast.success("Logged in with Google!")
+        localStorage.setItem('token', data.token)
+        setToken(data.token)
+        navigate('/')
+      } else {
+        toast.error(data.message)
       }
     } catch (error) {
       toast.error(error.message)
@@ -90,7 +113,18 @@ const Login = () => {
 
         {/* Password */}
         <div className='flex flex-col gap-1'>
-          <label className='text-sm font-medium text-gray-700'>Password</label>
+          {/* ✅ Forgot Password link added next to label */}
+          <div className='flex justify-between items-center'>
+            <label className='text-sm font-medium text-gray-700'>Password</label>
+            {state === 'Login' && (
+              <span
+                onClick={() => navigate('/forgot-password')}
+                className='text-xs text-primary cursor-pointer hover:underline'
+              >
+                Forgot Password?
+              </span>
+            )}
+          </div>
           <input
             type='password'
             autoComplete='new-password'
@@ -110,7 +144,28 @@ const Login = () => {
           {state === 'Sign Up' ? 'Create Account' : 'Login'}
         </button>
 
-        {/* Toggle */}
+        {/* ✅ Divider added */}
+        <div className='flex items-center gap-3'>
+          <hr className='flex-1 border-gray-200' />
+          <span className='text-xs text-gray-400'>or</span>
+          <hr className='flex-1 border-gray-200' />
+        </div>
+
+        {/* ✅ Google Login Button added */}
+        <button
+          type='button'
+          onClick={loginWithGoogle}
+          className='w-full border border-gray-300 py-2.5 rounded-lg flex items-center justify-center gap-2 text-sm text-gray-700 font-medium hover:bg-gray-50 transition-all duration-300'
+        >
+          <img
+            src='https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg'
+            className='w-5 h-5'
+            alt='Google'
+          />
+          Continue with Google
+        </button>
+
+        {/* Toggle — unchanged */}
         {state === 'Sign Up' ? (
           <p className='text-center text-sm text-gray-500'>
             Already have an account?{' '}

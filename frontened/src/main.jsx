@@ -15,6 +15,9 @@ import Appointment from './pages/Appointment'
 import AppContextProvider from './context/AppContext.jsx'
 import {ToastContainer , toast} from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
+
 const router = createBrowserRouter([
   {
     path: '/',
@@ -105,6 +108,22 @@ const router = createBrowserRouter([
         <Footer />
       </>
     ),
+  },
+  {
+    path :'/forgot-password' ,
+    element: (
+      <>
+      <ForgotPassword />
+      </>
+    )
+  },
+  {
+    path :'/reset-password/:resetToken' ,
+    element: (
+      <>
+      <ResetPassword />
+      </>
+    )
   },
 ])
 
