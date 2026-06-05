@@ -2,6 +2,8 @@ import validator from "validator"
 import bcrypt from 'bcrypt'
 import doctorModel from "../models/doctorsch.js"
 import jwt from "jsonwebtoken"
+import appointmentModel from "../models/appointmentsch.js"
+import userModel from "../models/usersch.js"
 
 const addDoctor = async (req, res) => {
     try {
@@ -94,4 +96,74 @@ const allDoctor = async(req,res)=>{
     }
 }
 
-export { addDoctor, loginAdmin ,allDoctor}
+const appointmentCancel = async (req, res) => {
+    try {
+        const { appointmentId } = req.body
+
+        const appointment = await appointmentModel.findById(appointmentId)
+        if (!appointment) {
+            return res.json({ success: false, message: 'Appointment not found' })
+        }
+
+        await appointmentModel.findByIdAndUpdate(appointmentId, { cancelled: true ,cancelledBy: 'admin' })
+
+        const { docId, slotDate, slotTime } = appointment
+        const docData = await doctorModel.findById(docId.toString()) 
+
+        if (!docData) {
+            return res.json({ success: false, message: 'Doctor not found' })
+        }
+
+        let slots_booked = docData.slots_booked
+
+        if (slots_booked[slotDate]) {
+            slots_booked[slotDate] = slots_booked[slotDate].filter(s => s !== slotTime)
+            await doctorModel.findByIdAndUpdate(docId, { slots_booked })
+        }
+
+        res.json({ success: true, message: 'Appointment Cancelled' })
+
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
+
+const appointmentAdmin = async(req,res)=>{
+    try {
+        const appointments = await appointmentModel.find({})
+        res.json({success:true,appointments})
+    } catch (error) {
+        console.log(error)
+        res.json({success:false,message:error.message})
+    }
+}
+
+const adminDashboard = async (req, res) => {  
+    try {
+       const doctors = await doctorModel.find({})
+       const users = await userModel.find({})
+       const appointments = await appointmentModel.find({}) 
+
+       const dashData = {
+        doctors: doctors.length,
+        appointments: appointments.length,
+        patients: users.length,
+        latestAppointments: appointments.reverse().slice(0, 5) 
+       } 
+
+       res.json({ success: true, dashData }) 
+
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+export { addDoctor, 
+    loginAdmin ,
+    allDoctor,
+    appointmentAdmin ,
+     appointmentCancel,
+     adminDashboard,
+    }

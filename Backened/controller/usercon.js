@@ -10,7 +10,7 @@ import nodemailer from 'nodemailer'
 import crypto from 'crypto'
 import admin from 'firebase-admin'
 
-// ✅ Initialize Firebase Admin once
+
 if (!admin.apps.length) {
   admin.initializeApp({
     credential: admin.credential.cert({
@@ -21,7 +21,7 @@ if (!admin.apps.length) {
   })
 }
 
-// ✅ Nodemailer transporter
+//  Nodemailer transporter
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
@@ -30,7 +30,7 @@ const transporter = nodemailer.createTransport({
   }
 })
 
-// ✅ Razorpay instance (only created when keys exist)
+//  Razorpay instance (only created when keys exist)
 const getRazorpayInstance = () => {
   return new Razorpay({
     key_id: process.env.RAZORPAY_KEY_ID,
@@ -184,7 +184,7 @@ const listAppointment = async (req, res) => {
   try {
     const { userId } = req.user
     const appointments = await appointmentModel.find({ userId })
-    res.json({ success: true, appointments })
+     res.json({ success: true, appointments })
   } catch (error) {
     console.log(error)
     res.json({ success: false, message: error.message })
@@ -201,7 +201,7 @@ const cancelAppointment = async (req, res) => {
       return res.json({ success: false, message: 'Unauthorized' })
     }
 
-    await appointmentModel.findByIdAndUpdate(appointmentId, { cancelled: true })
+    await appointmentModel.findByIdAndUpdate(appointmentId, { cancelled: true , cancelledBy: 'user' })
 
     const { docId, slotDate, slotTime } = appointment
     const docData = await doctorModel.findById(docId)
@@ -225,14 +225,14 @@ const paymentRazorpay = async (req, res) => {
       return res.json({ success: false, message: 'Appointment not found or cancelled' })
     }
 
-    // ✅ create razorpay order
+    //  create razorpay order
     const options = {
       amount: appointment.amount * 100,  // paise
       currency: 'INR',
       receipt: appointmentId,
     }
 
-    const order = await getRazorpayInstance().orders.create(options)  // ✅ use function
+    const order = await getRazorpayInstance().orders.create(options)  //  use function
     res.json({ success: true, order })
 
   } catch (error) {
@@ -327,6 +327,23 @@ const googleLogin = async (req, res) => {
   }
 }
 
+const verifyRazorpay = async(req,res)=>{
+  try {
+   const {razorpay_order_id} = req.body
+const orderInfo = await getRazorpayInstance().orders.fetch(razorpay_order_id)
+     if(orderInfo.status === 'paid'){
+      await appointmentModel.findByIdAndUpdate(orderInfo.receipt,{payment:true})
+      res.json({success:true,message:"Payemnt successfull !!"})
+     }
+     else{
+      res.json({success:false,message:"Payemnt failed"})
+     }
+  } catch (error) {
+    console.log(error)
+    res.json({success:false,message:error.message})
+  }
+}
+
 export {
   registerUser,
   loginUser,
@@ -339,4 +356,5 @@ export {
   forgotPassword,
   resetPassword,
   googleLogin,
+  verifyRazorpay,
 }

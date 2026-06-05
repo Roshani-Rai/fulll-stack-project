@@ -11,7 +11,12 @@ const appointmentSchema = new mongoose.Schema({
     date:{type:Number,required:true},
     cancelled:{type:Boolean,default:false},
     payment:{type:Boolean,default:false},
-    isCompleted:{type:Boolean,default:false}
+    isCompleted:{type:Boolean,default:false},
+    cancelledBy: {
+  type: String,
+  enum: ['user', 'doctor', 'admin'],
+  default: null
+}
 })
 
 const appointmentModel = mongoose.model('appointment',appointmentSchema)

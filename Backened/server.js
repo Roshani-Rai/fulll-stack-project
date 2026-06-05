@@ -5,6 +5,7 @@ import connectDb from './config/mongodb.js'
 import adminRouter from './routes/adminr.js' 
 import doctorRouter from './routes/doctorr.js'
 import userRouter from './routes/userr.js'
+import aiChatRouter from './routes/aiChat.js';
 
 
 const app=express()
@@ -18,7 +19,7 @@ app.use(cors())
 app.use('/api/admin',adminRouter)
 app.use('/api/doctor',doctorRouter)
 app.use('/api/user',userRouter)
-
+app.use('/api/ai-chat', aiChatRouter);
 
 app.get('/',(req,res)=>{
     res.send("API working");
