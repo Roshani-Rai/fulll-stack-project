@@ -22,7 +22,7 @@ const Doctor = () => {
   }, [doctors, speciality])
 
   const specialities = [
-    'General physician',
+    'General Physician',
     'Gynecologist',
     'Dermatologist',
     'Pediatricians',

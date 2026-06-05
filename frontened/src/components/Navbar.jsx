@@ -3,20 +3,20 @@ import { assets } from '../assets/assets'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useContext } from 'react'
 import { AppContext } from '../context/AppContext'
+import AIChatModal from './AIChatModal';
 
 const Navbar = () => {
-  const {token,setToken,user} = useContext(AppContext)
-
+  const { token, setToken, user } = useContext(AppContext)
 
   const navigate = useNavigate();
+  const [showChat, setShowChat] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
-  const [image, setImage] = useState(false)
 
   const profileImage = user && user.image && user.image.startsWith('http')
     ? user.image
     : assets.upload_area
 
-  const logout =()=>{
+  const logout = () => {
     setToken(false)
     localStorage.removeItem('token')
   }
@@ -30,7 +30,7 @@ const Navbar = () => {
     <div className="flex flex-row mt-6 justify-center">
       <div className='w-[90%] md:w-[76%] flex items-center justify-between px-6 py-4 shadow-md rounded-xl'>
 
-        <img src={assets.logo}  alt="" alt="logo" className='h-8' />
+        <img src={assets.logo} alt="logo" className='h-8' />
 
         <ul className='hidden md:flex items-center gap-6 font-medium'>
           <li><NavLink to='/' className={navLinkClass}>Home</NavLink></li>
@@ -40,6 +40,18 @@ const Navbar = () => {
         </ul>
 
         <div className='flex items-center gap-4'>
+
+          {/* ── AI CHAT BUTTON ── */}
+          <button
+            onClick={() => setShowChat(true)}
+            title="AI Health Assistant"
+            className='flex items-center gap-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 px-3 py-2 rounded-full text-sm font-medium transition-all duration-200 border border-blue-200 hover:scale-105'
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+            <span className='hidden sm:inline'>AI Assistant</span>
+          </button>
 
           {token ? (
             <div className="flex flex-row items-center gap-2 cursor-pointer group relative">
@@ -58,7 +70,7 @@ const Navbar = () => {
                     My Appointments
                   </p>
                   <p
-                    onClick={ logout}
+                    onClick={logout}
                     className='px-4 py-2 rounded-lg hover:bg-red-50 hover:text-red-500 cursor-pointer transition-colors'>
                     Logout
                   </p>
@@ -80,7 +92,6 @@ const Navbar = () => {
             src={assets.menu_icon}
             alt="menu"
           />
-
         </div>
       </div>
 
@@ -120,6 +131,19 @@ const Navbar = () => {
               </NavLink>
             </li>
           ))}
+
+          {/* AI Chat in mobile menu too */}
+          <li>
+            <button
+              onClick={() => { setShowMenu(false); setShowChat(true); }}
+              className='w-full text-left px-4 py-3 rounded-xl text-sm font-medium text-blue-600 hover:bg-blue-50 transition-colors duration-200 flex items-center gap-2'
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+              AI Health Assistant
+            </button>
+          </li>
         </ul>
 
         {!token && (
@@ -140,6 +164,9 @@ const Navbar = () => {
           className='fixed inset-0 bg-black/30 z-40 md:hidden'
         />
       )}
+
+      {/* AI Chat Modal */}
+      {showChat && <AIChatModal onClose={() => setShowChat(false)} />}
     </div>
   )
 }

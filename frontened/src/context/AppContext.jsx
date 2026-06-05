@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useEffect } from 'react';
 import {toast} from 'react-toastify'
 
+
 export const AppContext = createContext();
 
 const AppContextProvider = ({ children }) => {
@@ -17,7 +18,7 @@ const AppContextProvider = ({ children }) => {
         try {
            const {data} = await axios.get(backend_url + '/api/doctor/list')
            if(data.success){
-               setDoctors(data.doctors)
+               setDoctors(data.doctors.filter(doc => doc.available === true))
            }
            else{
             toast.error(data.message)
