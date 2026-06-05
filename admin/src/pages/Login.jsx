@@ -2,15 +2,19 @@ import React, { useContext, useState } from 'react'
 import { AdminContext } from '../context/AdminContext'
 import axios from 'axios'
 import { toast } from 'react-toastify'
+import { DoctorContext } from '../context/DoctorContext'
+import {useNavigate} from 'react-router-dom'
 
 const Login = () => {
   const [state, setState] = useState('Admin')
   const { setAtoken, backened_url } = useContext(AdminContext)
+  const {setDtoken,backend_url} = useContext(DoctorContext)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [emailError, setEmailError] = useState('')
   const [passwordError, setPasswordError] = useState('')
+  const navigate = useNavigate()
 
   const validate = () => {
     let valid = true
@@ -42,20 +46,33 @@ const Login = () => {
       const endpoint =
         state === 'Admin'
           ? `${backened_url}/api/admin/login`
-          : `${backened_url}/api/doctor/login`
+          : `${backend_url}/api/doctor/login`
 
       const { data } = await axios.post(endpoint, { email, password })
 
       if (data.success) {
-        localStorage.setItem('atoken', data.token)
-        setAtoken(data.token)
+        if(state ==='Admin'){
+        localStorage.removeItem('dtoken')
+         setDtoken('')
+         localStorage.setItem('atoken', data.token)
+         setAtoken(data.token)
+         navigate('/admin-dashboard')
+        }
+        else{
+         localStorage.removeItem('atoken')
+        setAtoken('')
+        localStorage.setItem('dtoken', data.token)
+        setDtoken(data.token)
+        navigate('/doctor-dashboard')
+        }
          setEmail('')       
          setPassword('') 
+        
       } else {
        toast.error(data.message);
       }
-    } catch (err) {
-      toast.error(err.message)
+    } catch (error) {
+      toast.error(error.message)
     } finally {
       setLoading(false)
     }

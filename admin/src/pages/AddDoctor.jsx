@@ -72,9 +72,9 @@ const AddDoctor = () => {
     }
   }
 
-  return (
-    <div className='m-1 w-full'>
-      <p className='ml-12 text-xl font-semibold text-gray-700 mb-6'>Add <span className='text-xl font-semibold text-primary mb-6'>Doctor</span></p>
+  return atoken && (
+    <div className='m-6 w-full'>
+      <p className='ml-11 text-xl font-semibold text-gray-700 mb-6'>Add <span className='text-xl font-semibold text-primary mb-6'>Doctor</span></p>
 
       <form onSubmit={onSubmit} className='bg-white rounded-xl shadow-sm border border-gray-100 p-6 w-full'>
 

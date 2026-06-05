@@ -8,16 +8,22 @@ import ListDoctor from './pages/ListDoctor'
 import AddDoctor from './pages/AddDoctor'
 import Navbar from './components/Navbar'
 import Sidebar from './components/Sidebar'
+import EditProfile from './pages/EditProfile'
 import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
+import { DoctorContext } from './context/DoctorContext'
+import DocAppoint from './Doctor/DocAppoint'
+import Docdash from './Doctor/Docdash'
+import DocProfile from './Doctor/DocProfile'
 
 const App = () => {
   const { atoken } = useContext(AdminContext)
+  const {dtoken} = useContext(DoctorContext)
 
-  return (
+  return  (
     <BrowserRouter>
       <ToastContainer />
-      {atoken ? (
+      {atoken || dtoken ? (
         <>
           <Navbar />
           <div className='flex items-start'>
@@ -28,6 +34,12 @@ const App = () => {
               <Route path='/all-appointment' element={<Appointment />} />
               <Route path='/doctor-list' element={<ListDoctor />} />
               <Route path='/add-doctor' element={<AddDoctor />} />
+              <Route path='/edit-doctor' element ={<EditProfile />} />
+
+              <Route path='/doctor-dashboard' element ={<Docdash />} />
+              <Route path='/doctor-appointment' element={<DocAppoint />} />
+              <Route path='/edit-profile' element ={<EditProfile />} />
+               <Route path='/doctor-profile' element ={<DocProfile />} />
             </Routes>
           </div>
         </>

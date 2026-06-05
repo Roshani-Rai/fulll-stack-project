@@ -1,17 +1,26 @@
 import React from 'react'
 import { AdminContext } from '../context/AdminContext'
 import { useContext, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 const ListDoctor = () => {
-  const { doctors, atoken, getAllDoctors , changeAvailability} = useContext(AdminContext)
+  const { doctors,deleteDoctor, atoken, getAllDoctors , changeAvailability} = useContext(AdminContext)
+   const navigate = useNavigate()
 
   useEffect(() => {
     if (atoken) getAllDoctors()
-  }, [atoken])
+  }, [atoken,changeAvailability])
 
-  return (
-    <div className='m-1 w-full'>
-      <p className='ml-12 sm:ml-0 text-xl font-semibold text-gray-700 mb-6'>
+const handleDelete = (docId, docName) => {
+  if (window.confirm(`Are you sure you want to delete Dr. ${docName}?`)) {
+    deleteDoctor(docId)
+  }
+}
+
+
+  return atoken && (
+    <div className='m-6 w-full'>
+      <p className='ml-24 sm:ml-0 text-xl font-semibold text-gray-700 mb-6'>
         All <span className='text-primary'>Doctors</span>
       </p>
 
@@ -50,6 +59,20 @@ const ListDoctor = () => {
 
               <p className='text-gray-900 font-medium text-base leading-tight'>{item.name}</p>
               <p className='text-gray-500 text-sm mt-0.5'>{item.speciality}</p>
+               <div className='flex gap-2 mt-3'>
+              <button
+              onClick={() => navigate('/edit-doctor', { state: { doctor: item } })}
+              className='flex-1 py-1.5 text-sm text-white bg-primary rounded-lg hover:bg-blue-600 transition-colors'
+                  >
+                      Edit
+               </button>
+                     <button
+                   onClick={() => handleDelete(item._id, item.name)}
+                  className='flex-1 py-1.5 text-sm text-white bg-red-500 rounded-lg hover:bg-red-600 transition-colors'
+                 >
+                Delete
+              </button>
+              </div>
             </div>
           </div>
         ))}
