@@ -2,6 +2,7 @@ import doctorModel from "../models/doctorsch.js";
 import appointmentModel from '../models/appointmentsch.js'
 import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken"
+import userModel from '../models/usersch.js' 
 
 const changeAvailability = async(req,res)=>{
     try {
@@ -190,6 +191,53 @@ const getProfile = async (req, res) => {
     res.json({ success: false, message: error.message })
   }
 }
+
+const rateDoctor = async (req, res) => {
+  try {
+    const { docId, rating, review } = req.body
+    const userId = req.user.userId  // ✅ matches your authUser middleware
+
+    if (!rating || rating < 1 || rating > 5) {
+      return res.json({ success: false, message: 'Rating must be between 1 and 5' })
+    }
+
+    const doctor = await doctorModel.findById(docId)
+    if (!doctor) return res.json({ success: false, message: 'Doctor not found' })
+
+    // Prevent duplicate rating from same user
+    const alreadyRated = doctor.reviews.find(r => r.userId.toString() === userId)
+    if (alreadyRated) return res.json({ success: false, message: 'You already rated this doctor' })
+
+    // Get user name from user collection
+    const user = await userModel.findById(userId).select('name')
+
+    doctor.reviews.push({
+      userId,
+      userName: user?.name || 'Anonymous',
+      rating: Number(rating),
+      review: review || ''
+    })
+
+    // Recalculate average
+    const total = doctor.reviews.reduce((sum, r) => sum + r.rating, 0)
+    doctor.rating = parseFloat((total / doctor.reviews.length).toFixed(1))
+    doctor.totalRatings = doctor.reviews.length
+
+    await doctor.save()
+
+    res.json({
+      success: true,
+      message: 'Rating submitted!',
+      newRating: doctor.rating,
+      totalRatings: doctor.totalRatings
+    })
+
+  } catch (error) {
+    console.log(error)
+    res.json({ success: false, message: error.message })
+  }
+}
+
 export {changeAvailability,
   doctorList,
   editDoctor,
@@ -200,4 +248,5 @@ export {changeAvailability,
   appointmentCancel,
   doctorDash,
   getProfile,
+  rateDoctor,
 }
