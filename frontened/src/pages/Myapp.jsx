@@ -187,6 +187,12 @@ const MyAppointments = () => {
               </div>
 
               <p className='text-sm text-primary font-medium'>{item.docData.speciality}</p>
+              <div className='flex items-center gap-1 px-4 pb-4 mt-1'>
+  {[1,2,3,4,5].map(star => (
+    <span key={star} className={`text-sm ${star <= Math.round(item.rating) ? 'text-yellow-400' : 'text-gray-300'}`}>★</span>
+  ))}
+  <span className='text-xs text-gray-400 ml-1'>{item.rating?.toFixed(1)} ({item.totalRatings || 0})</span>
+</div>
 
               <div className='mt-1'>
                 <p className='text-xs font-semibold uppercase tracking-widest text-gray-400 mb-0.5'>Address</p>

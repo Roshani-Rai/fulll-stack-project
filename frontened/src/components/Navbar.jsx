@@ -41,16 +41,16 @@ const Navbar = () => {
 
         <div className='flex items-center gap-4'>
 
-          {/* ── AI CHAT BUTTON ── */}
+          {/* AI Chat — desktop only */}
           <button
             onClick={() => setShowChat(true)}
             title="AI Health Assistant"
-            className='flex items-center gap-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 px-3 py-2 rounded-full text-sm font-medium transition-all duration-200 border border-blue-200 hover:scale-105'
+            className='hidden md:flex items-center gap-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 px-3 py-2 rounded-full text-sm font-medium transition-all duration-200 border border-blue-200 hover:scale-105'
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
             </svg>
-            <span className='hidden sm:inline'>AI Assistant</span>
+            <span>AI Assistant</span>
           </button>
 
           {token ? (
@@ -95,10 +95,11 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* Mobile Slide-in Menu */}
+      {/* ── Mobile Slide-in Sidebar ── */}
       <div className={`fixed top-0 right-0 h-full w-72 bg-white shadow-2xl z-50 flex flex-col transition-transform duration-300 ease-in-out
         ${showMenu ? 'translate-x-0' : 'translate-x-full'}`}>
 
+        {/* Sidebar header */}
         <div className='flex items-center justify-between px-6 py-5 border-b border-gray-100'>
           <img src={assets.logo} alt="logo" className='h-7' />
           <img
@@ -109,6 +110,7 @@ const Navbar = () => {
           />
         </div>
 
+        {/* Nav links */}
         <ul className='flex flex-col gap-1 px-4 py-6'>
           {[
             { to: '/', label: 'Home' },
@@ -131,30 +133,42 @@ const Navbar = () => {
               </NavLink>
             </li>
           ))}
-
-          {/* AI Chat in mobile menu too */}
-          <li>
-            <button
-              onClick={() => { setShowMenu(false); setShowChat(true); }}
-              className='w-full text-left px-4 py-3 rounded-xl text-sm font-medium text-blue-600 hover:bg-blue-50 transition-colors duration-200 flex items-center gap-2'
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-              </svg>
-              AI Health Assistant
-            </button>
-          </li>
         </ul>
 
-        {!token && (
-          <div className='px-6 mt-auto pb-8'>
+        {/* ── BOTTOM SECTION — pushes to bottom with mt-auto ── */}
+        <div className='mt-auto px-4 pb-8 flex flex-col gap-3'>
+
+          {/* Divider */}
+          <div className='border-t border-gray-100 mb-1' />
+
+          {/* AI Health Assistant — pinned at bottom */}
+          <button
+            onClick={() => { setShowMenu(false); setShowChat(true); }}
+            className='w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-blue-50 border border-blue-200 text-blue-600 hover:bg-blue-100 transition-all duration-200 group'
+          >
+            <div className='w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-200'>
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+            </div>
+            <div className='text-left'>
+              <p className='text-sm font-semibold text-blue-700'>AI Health Assistant</p>
+              <p className='text-xs text-blue-400'>Ask symptoms, get guidance</p>
+            </div>
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 ml-auto text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 18l6-6-6-6"/>
+            </svg>
+          </button>
+
+          {/* Create Account button (if not logged in) */}
+          {!token && (
             <button
               onClick={() => { navigate('/login'); setShowMenu(false); }}
               className='w-full bg-primary text-white py-3 rounded-full text-sm font-semibold hover:bg-blue-600 transition-all duration-300'>
               Create Account
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Backdrop */}

@@ -79,6 +79,14 @@ const Doctor = () => {
                   </div>
                   <p className='text-gray-900 font-medium text-base leading-tight'>{item.name}</p>
                   <p className='text-gray-500 text-sm mt-0.5'>{item.speciality}</p>
+                  <div className='flex items-center gap-1 mt-2'>
+    {[1,2,3,4,5].map(star => (
+      <span key={star} className={`text-sm ${star <= Math.round(item.rating) ? 'text-yellow-400' : 'text-gray-300'}`}>★</span>
+    ))}
+    <span className='text-xs text-gray-400 ml-1'>
+      {item.rating?.toFixed(1)} ({item.totalRatings || 0})
+    </span>
+  </div>
                 </div>
               </div>
             ))}
