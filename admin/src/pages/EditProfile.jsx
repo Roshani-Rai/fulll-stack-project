@@ -109,8 +109,16 @@ const EditDoctor = () => {
           <div>
             <p className='text-sm font-medium text-gray-700'>{doctor?.name}</p>
             <p className='text-xs text-gray-400 mt-1'>Click the image to update</p>
+              <div className='flex items-center gap-1.5 mt-2'>
+              {[1,2,3,4,5].map(star => (
+                <span key={star} className={`text-base ${star <= Math.round(doctor?.rating) ? 'text-yellow-400' : 'text-gray-300'}`}>★</span>
+              ))}
+              <span className='text-xs font-semibold text-gray-600'>{doctor?.rating?.toFixed(1)}</span>
+              <span className='text-xs text-gray-400'>({doctor?.totalRatings || 0} reviews)</span>
+            </div>
           </div>
-        </div>
+          </div>
+       
 
         {/* Form Grid */}
         <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>

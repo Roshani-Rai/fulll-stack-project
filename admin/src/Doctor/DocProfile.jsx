@@ -106,6 +106,22 @@ const DoctorProfile = () => {
 
         {/* Info Grid */}
         <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6'>
+    
+          <div className='bg-yellow-50 border border-yellow-100 rounded-lg p-4 sm:col-span-2 lg:col-span-3'>
+            <p className='text-xs text-gray-400 uppercase tracking-wide mb-2'>Rating & Reviews</p>
+            <div className='flex flex-col sm:flex-row sm:items-center gap-3'>
+              <div className='flex items-center gap-1'>
+                {[1,2,3,4,5].map(star => (
+                  <span key={star} className={`text-2xl ${star <= Math.round(profileData.rating) ? 'text-yellow-400' : 'text-gray-300'}`}>★</span>
+                ))}
+              </div>
+              <div className='flex items-center gap-2'>
+                <span className='text-2xl font-bold text-gray-700'>{profileData.rating?.toFixed(1)}</span>
+                <span className='text-sm text-gray-400'>/ 5.0</span>
+                <span className='text-sm text-gray-400 ml-1'>· {profileData.totalRatings || 0} patient reviews</span>
+              </div>
+            </div>
+          </div>
 
           <div className='bg-gray-50 rounded-lg p-4'>
             <p className='text-xs text-gray-400 uppercase tracking-wide mb-1'>Email</p>
