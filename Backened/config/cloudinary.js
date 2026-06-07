@@ -7,7 +7,6 @@ cloudinary.config({
     api_secret: process.env.CLOUDINARY_SECRET_KEY
 })
 
-console.log("🔑 Cloudinary initialized:", cloudinary.config())  // ✅ add
 
 export { cloudinary }
 export default cloudinary

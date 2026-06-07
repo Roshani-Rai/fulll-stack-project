@@ -344,6 +344,65 @@ const orderInfo = await getRazorpayInstance().orders.fetch(razorpay_order_id)
   }
 }
 
+const refundRequest = async(req,res)=>{
+   try {
+    const { appointmentId } = req.body
+    const appointment = await appointmentModel.findById(appointmentId)
+
+    if (!appointment) return res.json({ success: false, message: 'Appointment not found' })
+    if (!appointment.payment) return res.json({ success: false, message: 'No payment made' })
+    if (appointment.prescriptionSent) return res.json({ success: false, message: 'Cannot cancel after prescription sent' })
+
+    await appointmentModel.findByIdAndUpdate(appointmentId, {
+      cancelled: true,
+      cancelledBy: 'user',
+      refundStatus: 'requested',
+    })
+
+    res.json({ success: true, message: 'Refund requested. Will be processed within 4 hours.' })
+  } catch (error) {
+    res.json({ success: false, message: error.message })
+  }
+}
+
+
+const completeAppointment = async (req, res) => {
+  try {
+    const { appointmentId } = req.body
+    const userId = req.body.userId // or req.user.userId depending on your auth middleware
+
+    const appointment = await appointmentModel.findById(appointmentId)
+    if (!appointment) {
+      return res.json({ success: false, message: 'Appointment not found' })
+    }
+
+    if (appointment.userId !== userId) {
+      return res.json({ success: false, message: 'Unauthorized' })
+    }
+
+    await appointmentModel.findByIdAndUpdate(appointmentId, { isCompleted: true })
+
+    const { docId, slotDate, slotTime } = appointment
+    const docData = await doctorModel.findById(docId.toString())
+
+    if (docData) {
+      let slots_booked = docData.slots_booked
+      if (slots_booked[slotDate]) {
+        slots_booked[slotDate] = slots_booked[slotDate].filter(s => s !== slotTime)
+        await doctorModel.findByIdAndUpdate(docId, { slots_booked })
+      }
+    }
+
+    res.json({ success: true, message: 'Appointment marked as completed' })
+
+  } catch (error) {
+    console.log(error)
+    res.json({ success: false, message: error.message })
+  }
+}
+
+
+
 export {
   registerUser,
   loginUser,
@@ -357,4 +416,6 @@ export {
   resetPassword,
   googleLogin,
   verifyRazorpay,
+  refundRequest,
+  completeAppointment,
 }

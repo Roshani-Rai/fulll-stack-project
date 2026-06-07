@@ -109,75 +109,108 @@ const appointmentsDoctor = async(req,res)=>{
  }
 }
 
-const appointmentComplete = async(req,res)=>{
- try {
-  const {docId , appointmentId} = req.body
-  const appointmentData = await appointmentModel.findById(appointmentId)
-  if(appointmentData && appointmentData.docId === docId){
-    await appointmentModel.findByIdAndUpdate(appointmentId,{isCompleted : true})
-    return res.json({success:true,message:'Appointment completed successfully!!'})
-  }
-  else{
-    res.json({success:false,message:'Mark Failed '})
-  }
-
- } catch (error) {
-  console.log(error)
-  res.json({success:false,message:error.message})
- }
-}
-
-const appointmentCancel = async(req,res)=>{
- try {
-  const {docId , appointmentId} = req.body
-  const appointmentData = await appointmentModel.findById(appointmentId)
-  if(appointmentData && appointmentData.docId === docId){
-   await appointmentModel.findByIdAndUpdate(appointmentId, {
-  cancelled: true,
-  cancelledBy: 'doctor'   
-})
-    return res.json({success:true,message:'Appointment cancelled successfully!!'})
-  }
-  else{
-    res.json({success:false,message:'Cancellation Failed '})
-  }
-
- } catch (error) {
-  console.log(error)
-  res.json({success:false,message:error.message})
- }
-}
-
-
-const doctorDash = async(req,res)=>{
+// ✅ Doctor cancel — add slot freeing
+const appointmentCancel = async (req, res) => {
   try {
-    const {docId} = req.body
-    const appointments = await appointmentModel.find({docId})
-    let earnings = 0
-    appointments.map((item)=>{
-      if(item.isCompleted || item.payment){
-        earnings += item.amount
+    const { docId, appointmentId } = req.body
+    const appointmentData = await appointmentModel.findById(appointmentId)
+
+    if (appointmentData && appointmentData.docId === docId) {
+
+      const updateData = { cancelled: true, cancelledBy: 'doctor' }
+      if (appointmentData.payment) updateData.refundStatus = 'processed'
+
+      await appointmentModel.findByIdAndUpdate(appointmentId, updateData)
+
+      // ✅ Free the slot
+      const { slotDate, slotTime } = appointmentData
+      const docData = await doctorModel.findById(docId)
+      if (docData) {
+        let slots_booked = docData.slots_booked
+        if (slots_booked[slotDate]) {
+          slots_booked[slotDate] = slots_booked[slotDate].filter(s => s !== slotTime)
+          await doctorModel.findByIdAndUpdate(docId, { slots_booked })
+        }
       }
-    })
-   let patients =[]
-   appointments.map((item)=>{
-    if(!patients.includes(item.userId)){
-      patients.push(item.userId)
+
+      return res.json({ success: true, message: 'Appointment cancelled successfully!!' })
+    } else {
+      res.json({ success: false, message: 'Cancellation Failed' })
     }
-   })
-
-   const dashData = {
-    earnings,
-    appointments: appointments.length,
-    patients:patients.length,
-    latestAppointments: appointments.reverse().slice(0,5)
-   }
-
-   res.json({success:true,dashData})
 
   } catch (error) {
     console.log(error)
-    res.json({success:false,message:error.message})
+    res.json({ success: false, message: error.message })
+  }
+}
+
+// ✅ Complete — free the slot too
+const appointmentComplete = async (req, res) => {
+  try {
+    const { docId, appointmentId } = req.body
+    const appointmentData = await appointmentModel.findById(appointmentId)
+
+    if (appointmentData && appointmentData.docId === docId) {
+      await appointmentModel.findByIdAndUpdate(appointmentId, { isCompleted: true })
+
+      // ✅ Free the slot
+      const { slotDate, slotTime } = appointmentData
+      const docData = await doctorModel.findById(docId)
+      if (docData) {
+        let slots_booked = docData.slots_booked
+        if (slots_booked[slotDate]) {
+          slots_booked[slotDate] = slots_booked[slotDate].filter(s => s !== slotTime)
+          await doctorModel.findByIdAndUpdate(docId, { slots_booked })
+        }
+      }
+
+      return res.json({ success: true, message: 'Appointment completed successfully!!' })
+    } else {
+      res.json({ success: false, message: 'Mark Failed' })
+    }
+
+  } catch (error) {
+    console.log(error)
+    res.json({ success: false, message: error.message })
+  }
+}
+
+const doctorDash = async (req, res) => {
+  try {
+    const { docId } = req.body
+    const appointments = await appointmentModel.find({ docId })
+
+    let earnings = 0
+    appointments.map((item) => {
+      if (item.isCompleted || item.payment) {
+        if (item.refundStatus === 'processed') {
+          earnings -= item.amount  
+        } 
+        else {
+          earnings += item.amount
+        }
+      }
+    })
+
+    let patients = []
+    appointments.map((item) => {
+      if (!patients.includes(item.userId)) {
+        patients.push(item.userId)
+      }
+    })
+
+    const dashData = {
+      earnings,
+      appointments: appointments.length,
+      patients: patients.length,
+      latestAppointments: appointments.reverse().slice(0, 5)
+    }
+
+    res.json({ success: true, dashData })
+
+  } catch (error) {
+    console.log(error)
+    res.json({ success: false, message: error.message })
   }
 }
 
@@ -238,6 +271,72 @@ const rateDoctor = async (req, res) => {
   }
 }
 
+  
+  const addPdf = async (req, res) => {
+  try {
+    const { appointmentId, medications, notes } = req.body
+    const appointment = await appointmentModel.findById(appointmentId)
+
+    if (!appointment) return res.json({ success: false, message: 'Appointment not found' })
+    if (appointment.cancelled) return res.json({ success: false, message: 'Appointment is cancelled' })
+
+    await appointmentModel.findByIdAndUpdate(appointmentId, {
+      prescription: { medications, notes },
+      prescriptionSent: true,
+    })
+
+    res.json({ success: true, message: 'Prescription sent to patient' })
+  } catch (error) {
+    res.json({ success: false, message: error.message })
+  }
+}
+
+const acceptRefund = async(req,res)=>{
+  try {
+    const { appointmentId } = req.body
+    const appointment = await appointmentModel.findById(appointmentId)
+
+    if (!appointment) return res.json({ success: false, message: 'Appointment not found' })
+    if (appointment.refundStatus !== 'requested') return res.json({ success: false, message: 'No refund request found' })
+
+    await appointmentModel.findByIdAndUpdate(appointmentId, {
+      refundStatus: 'processed',
+    })
+
+    res.json({ success: true, message: 'Refund approved and processed' })
+  } catch (error) {
+    res.json({ success: false, message: error.message })
+  }
+}
+
+const getPrescription = async (req, res) => {
+  try {
+    const { appointmentId } = req.params
+
+    const appointment = await appointmentModel.findById(appointmentId)
+
+    if (!appointment) {
+      return res.json({ success: false, message: 'Appointment not found' })
+    }
+
+    if (!appointment.prescriptionSent) {
+      return res.json({ success: false, message: 'No prescription sent for this appointment' })
+    }
+
+    res.json({
+      success: true,
+      prescription: appointment.prescription,
+      patientName: appointment.userData.name,
+      slotDate: appointment.slotDate,
+      slotTime: appointment.slotTime,
+    })
+
+  } catch (error) {
+    console.log(error)
+    res.json({ success: false, message: error.message })
+  }
+}
+
 export {changeAvailability,
   doctorList,
   editDoctor,
@@ -249,4 +348,7 @@ export {changeAvailability,
   doctorDash,
   getProfile,
   rateDoctor,
+  addPdf,
+  acceptRefund,
+  getPrescription,
 }

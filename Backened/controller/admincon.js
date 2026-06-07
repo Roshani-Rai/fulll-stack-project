@@ -97,36 +97,43 @@ const allDoctor = async(req,res)=>{
 }
 
 const appointmentCancel = async (req, res) => {
-    try {
-        const { appointmentId } = req.body
+  try {
+    const { appointmentId } = req.body
 
-        const appointment = await appointmentModel.findById(appointmentId)
-        if (!appointment) {
-            return res.json({ success: false, message: 'Appointment not found' })
-        }
-
-        await appointmentModel.findByIdAndUpdate(appointmentId, { cancelled: true ,cancelledBy: 'admin' })
-
-        const { docId, slotDate, slotTime } = appointment
-        const docData = await doctorModel.findById(docId.toString()) 
-
-        if (!docData) {
-            return res.json({ success: false, message: 'Doctor not found' })
-        }
-
-        let slots_booked = docData.slots_booked
-
-        if (slots_booked[slotDate]) {
-            slots_booked[slotDate] = slots_booked[slotDate].filter(s => s !== slotTime)
-            await doctorModel.findByIdAndUpdate(docId, { slots_booked })
-        }
-
-        res.json({ success: true, message: 'Appointment Cancelled' })
-
-    } catch (error) {
-        console.log(error)
-        res.json({ success: false, message: error.message })
+    const appointment = await appointmentModel.findById(appointmentId)
+    if (!appointment) {
+      return res.json({ success: false, message: 'Appointment not found' })
     }
+
+    // ✅ Auto-process refund if appointment was paid
+    const updateData = {
+      cancelled: true,
+      cancelledBy: 'admin'
+    }
+    if (appointment.payment) {
+      updateData.refundStatus = 'processed'
+    }
+
+    await appointmentModel.findByIdAndUpdate(appointmentId, updateData)
+
+    // ✅ Free the slot
+    const { docId, slotDate, slotTime } = appointment
+    const docData = await doctorModel.findById(docId.toString())
+
+    if (docData) {
+      let slots_booked = docData.slots_booked
+      if (slots_booked[slotDate]) {
+        slots_booked[slotDate] = slots_booked[slotDate].filter(s => s !== slotTime)
+        await doctorModel.findByIdAndUpdate(docId, { slots_booked })
+      }
+    }
+
+    res.json({ success: true, message: 'Appointment Cancelled' })
+
+  } catch (error) {
+    console.log(error)
+    res.json({ success: false, message: error.message })
+  }
 }
 
 
