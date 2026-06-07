@@ -133,7 +133,7 @@ export default function AIChatModal({ onClose }) {
         content: i === updatedMessages.length - 1 ? contentParts : m.text,
       }));
 
-      const response = await fetch("http://localhost:4000/api/ai-chat", {
+      const response = await fetch("https://doctor-appointment-backened.onrender.com/api/ai-chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: apiMessages }),
