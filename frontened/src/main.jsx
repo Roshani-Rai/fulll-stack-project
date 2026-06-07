@@ -18,6 +18,7 @@ import 'react-toastify/dist/ReactToastify.css'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 
+
 const router = createBrowserRouter([
   {
     path: '/',
@@ -125,6 +126,7 @@ const router = createBrowserRouter([
       </>
     )
   },
+ 
 ])
 
 createRoot(document.getElementById('root')).render(
