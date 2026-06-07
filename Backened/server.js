@@ -15,7 +15,7 @@ connectDb()
 
 
 app.use(cors({
-  origin: ["http://localhost:5173", "http://localhost:5174"],
+  origin: ["http://localhost:5173", "http://localhost:5174","https://doctor-appointment-frontened-3mxv.onrender.com","https://doctor-appointment-admin-hyvf.onrender.com"],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   credentials: true,
 }))
