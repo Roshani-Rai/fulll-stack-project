@@ -122,26 +122,48 @@ const Appointment = () => {
             <p className='hidden sm:block text-gray-600'>₹{item.amount}</p>
 
             {/* Actions */}
-            <div className='flex sm:block'>
-              {item.cancelled ? (
-                <span className='text-red-400 text-xs font-medium bg-red-50 px-2 py-1 rounded-full'>
-                  Cancelled
-                </span>
-              ) : item.payment ? (
-                <span className='text-green-500 text-xs font-medium bg-green-50 px-2 py-1 rounded-full'>
-                  Paid
-                </span>
-              ) : (
-                <button
-                  onClick={() => cancelAppointment(item._id)}
-                  className='flex items-center cursor-pointer gap-1 text-red-400 hover:text-red-600 text-xs border border-red-300 hover:border-red-500 px-2 py-1 rounded-full transition-all duration-200'
-                  title='Cancel Appointment'
-                >
-                  <span>✕</span>
-                  <span className='sm:hidden'>Cancel</span>
-                </button>
-              )}
-            </div>
+           {/* Actions */}
+<div className='flex flex-col gap-1.5 sm:block'>
+  {item.cancelled ? (
+    <span className='text-red-400 text-xs font-medium bg-red-50 px-2 py-1 rounded-full'>
+      Cancelled
+    </span>
+  ) : item.payment ? (
+    <div className='flex flex-col gap-1.5'>
+
+      {/* Paid badge */}
+      <span className='text-green-500 text-xs font-medium bg-green-50 px-2 py-1 rounded-full text-center'>
+        ✓ Paid
+      </span>
+
+      {/* ✅ Prescription status */}
+      {item.prescriptionId ? (
+        <button
+          onClick={() => window.open(
+            `${import.meta.env.VITE_BACKEND_URL}/api/prescription/${item.prescriptionId}`, '_blank'
+          )}
+          className='text-xs px-2 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-500 hover:bg-blue-500 hover:text-white transition-all duration-200 text-center'
+        >
+          📄 View Rx
+        </button>
+      ) : (
+        <span className='text-xs px-2 py-1 rounded-full bg-yellow-50 border border-yellow-200 text-yellow-500 text-center'>
+          ⏳ No Rx yet
+        </span>
+      )}
+
+    </div>
+  ) : (
+    <button
+      onClick={() => cancelAppointment(item._id)}
+      className='flex items-center cursor-pointer gap-1 text-red-400 hover:text-red-600 text-xs border border-red-300 hover:border-red-500 px-2 py-1 rounded-full transition-all duration-200'
+      title='Cancel Appointment'
+    >
+      <span>✕</span>
+      <span className='sm:hidden'>Cancel</span>
+    </button>
+  )}
+</div>
 
           </div>
         ))}

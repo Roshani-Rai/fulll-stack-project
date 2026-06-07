@@ -16,6 +16,7 @@ import DocAppoint from './Doctor/DocAppoint'
 import Docdash from './Doctor/Docdash'
 import DocProfile from './Doctor/DocProfile'
 
+
 const App = () => {
   const { atoken } = useContext(AdminContext)
   const {dtoken} = useContext(DoctorContext)
@@ -40,6 +41,7 @@ const App = () => {
               <Route path='/doctor-appointment' element={<DocAppoint />} />
               <Route path='/edit-profile' element ={<EditProfile />} />
                <Route path='/doctor-profile' element ={<DocProfile />} />
+              
             </Routes>
           </div>
         </>
