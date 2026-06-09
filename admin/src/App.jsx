@@ -15,6 +15,7 @@ import { DoctorContext } from './context/DoctorContext'
 import DocAppoint from './Doctor/DocAppoint'
 import Docdash from './Doctor/Docdash'
 import DocProfile from './Doctor/DocProfile'
+import DoctorChat from './Doctor/DoctorChat'
 
 
 const App = () => {
@@ -41,6 +42,7 @@ const App = () => {
               <Route path='/doctor-appointment' element={<DocAppoint />} />
               <Route path='/edit-profile' element ={<EditProfile />} />
                <Route path='/doctor-profile' element ={<DocProfile />} />
+               <Route path='/doctor-chat/:appointmentId' element={<DoctorChat />} />
               
             </Routes>
           </div>

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { toast } from 'react-toastify'
 
+
 const DocAppoint = () => {
   const { dtoken, appointments, getAppointments, cancelAppointment, completeAppointment, backend_url } = useContext(DoctorContext)
   const navigate = useNavigate()
@@ -255,15 +256,37 @@ const DocAppoint = () => {
                       </div>
                     )}
 
-                    {!item.prescriptionSent && (
-                      <button
-                        onClick={() => cancelAppointment(item._id)}
-                        title='Cancel'
-                        className='w-8 h-8 flex items-center justify-center rounded-full border border-red-300 text-red-400 hover:bg-red-400 hover:text-white transition-all'
-                      >
-                        ✕
-                      </button>
-                    )}
+                  {item.payment && 
+ !item.cancelled && 
+ item.refundStatus !== 'requested' && 
+ item.refundStatus !== 'processed' && (
+  <button
+    onClick={() => navigate(`/doctor-chat/${item._id}`, {
+      state: {
+        appointmentId: item._id,
+        patientName: item.userData.name,
+        patientImage: item.userData.image,
+        patientId: item.userId
+      }
+    })}
+    className='text-xs px-3 py-1.5 rounded-full border border-indigo-400 text-indigo-500 hover:bg-indigo-500 hover:text-white transition-all flex items-center gap-1 whitespace-nowrap'
+  >
+    <svg xmlns='http://www.w3.org/2000/svg' className='w-3.5 h-3.5' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}>
+      <path strokeLinecap='round' strokeLinejoin='round' d='M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z' />
+    </svg>
+    Chat
+  </button>
+)}
+
+{!item.prescriptionSent && (
+  <button
+    onClick={() => cancelAppointment(item._id)}
+    title='Cancel'
+    className='w-8 h-8 flex items-center justify-center rounded-full border border-red-300 text-red-400 hover:bg-red-400 hover:text-white transition-all'
+  >
+    ✕
+  </button>
+)}
 
                     <button
                       onClick={() => completeAppointment(item._id)}
@@ -387,6 +410,8 @@ const DocAppoint = () => {
                     )}
                   </div>
                 ))}
+
+              
 
                 <button
                   onClick={() => addMedication(item._id)}

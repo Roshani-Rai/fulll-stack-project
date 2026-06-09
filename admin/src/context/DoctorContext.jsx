@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState , useEffect } from 'react';
 import {createContext} from 'react'
 import {toast} from 'react-toastify'
 import axios from 'axios'
@@ -43,6 +43,10 @@ export const DoctorContext = createContext();
       toast.error(error.message)
     }
   }
+
+   useEffect(() => {
+  if (dtoken) getProfileData()
+}, [dtoken])
 
    const completeAppointment = async(appointmentId)=>{
     try {
