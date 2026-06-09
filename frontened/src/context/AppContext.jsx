@@ -48,7 +48,7 @@ useEffect(() => {
 
     useEffect(()=>{
      if(token) loadUserProfile()
-        else setUser(false)
+        else setUserData(false)
     },[token])
 
     const value = {
