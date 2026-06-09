@@ -5,7 +5,6 @@ import { AdminContext } from './AdminContext.jsx'
 
 const SocketContext = createContext()
 
-// load from localStorage once on startup
 const loadNotifications = () => {
   try {
     const stored = localStorage.getItem('doctor_notifications')
@@ -24,52 +23,118 @@ const SocketProvider = ({ children }) => {
   const [notifications, setNotifications] = useState(loadNotifications)
   const [isConnected, setIsConnected] = useState(false)
 
+  // CONSOLIDATED: All socket setup in ONE useEffect
   useEffect(() => {
     if (!dtoken || !profileData?._id) return
 
     socket.connect()
 
-    socket.on('connect', () => {
+    // Connection handler
+    const handleConnect = () => {
       setIsConnected(true)
+      console.log('Doctor socket connected:', profileData._id)
       socket.emit('user:join', profileData._id)
       socket.emit('doctor:join', profileData._id)
-      console.log('Doctor socket connected:', profileData._id)
-    })
+      console.log('Doctor joined rooms:', profileData._id)
+    }
 
-    socket.on('disconnect', () => setIsConnected(false))
+    // Disconnect handler
+    const handleDisconnect = () => {
+      setIsConnected(false)
+      console.log('Doctor socket disconnected')
+    }
 
-    socket.on('notification', (data) => {
+    // Notification handler
+    const handleNotification = (data) => {
+      console.log('Doctor notification received:', data)
+      const newNotif = {
+        ...data,
+        id: data.id || `notif_${Date.now()}`,
+        read: false,
+        createdAt: data.createdAt || data.timestamp || new Date().toISOString(),
+      }
       setNotifications(prev => {
-        const updated = [
-          {
-            ...data,
-            id: Date.now(),
-            read: false,
-            createdAt: data.createdAt || new Date().toISOString(), // ← persist timestamp
-          },
-          ...prev,
-        ]
+        const updated = [newNotif, ...prev]
         saveNotifications(updated)
         return updated
       })
-    })
+    }
 
-    socket.on('doctor:availability:changed', ({ doctorId, status }) => {
+    // 🔴 ADD THIS - Listen for appointment bookings from patients
+    const handleAppointmentBooked = (data) => {
+      console.log('New appointment booked:', data)
+      const newNotif = {
+        type: 'appointment_booked',
+        message: `New appointment request from ${data.patientName || 'Patient'}`,
+        appointmentId: data.appointmentId,
+        patientId: data.patientId,
+        id: `appt_${Date.now()}`,
+        read: false,
+        createdAt: new Date().toISOString(),
+      }
+      setNotifications(prev => {
+        const updated = [newNotif, ...prev]
+        saveNotifications(updated)
+        return updated
+      })
+    }
+
+    // 🔴 ADD THIS - Listen for appointment updates
+    const handleAppointmentUpdated = (data) => {
+      console.log('Appointment updated:', data)
+      const newNotif = {
+        type: 'appointment_updated',
+        message: data.message || 'Appointment status changed',
+        appointmentId: data.appointmentId,
+        id: `appt_${Date.now()}`,
+        read: false,
+        createdAt: new Date().toISOString(),
+      }
+      setNotifications(prev => {
+        const updated = [newNotif, ...prev]
+        saveNotifications(updated)
+        return updated
+      })
+    }
+
+    const handleAvailabilityChanged = ({ doctorId, status }) => {
       console.log('Availability updated:', doctorId, status)
-    })
+    }
 
+    // Register all listeners
+    socket.on('connect', handleConnect)
+    socket.on('disconnect', handleDisconnect)
+    socket.on('notification', handleNotification)
+    socket.on('appointment:booked', handleAppointmentBooked)        
+    socket.on('appointment:updated', handleAppointmentUpdated)     
+    socket.on('doctor:availability:changed', handleAvailabilityChanged)
+
+    // Cleanup
     return () => {
-      socket.off('connect')
-      socket.off('disconnect')
-      socket.off('notification')
-      socket.off('doctor:availability:changed')
+      socket.off('connect', handleConnect)
+      socket.off('disconnect', handleDisconnect)
+      socket.off('notification', handleNotification)
+      socket.off('appointment:booked', handleAppointmentBooked)
+      socket.off('appointment:updated', handleAppointmentUpdated)
+      socket.off('doctor:availability:changed', handleAvailabilityChanged)
       socket.disconnect()
     }
   }, [dtoken, profileData?._id])
 
+
+
   const markAsRead = (id) =>
     setNotifications(prev => {
-      const updated = prev.map(n => n.id === id ? { ...n, read: true } : n)
+      const updated = prev.map(n => 
+        String(n.id) === String(id) ? { ...n, read: true } : n
+      )
+      saveNotifications(updated)
+      return updated
+    })
+
+  const markAllRead = () =>
+    setNotifications(prev => {
+      const updated = prev.map(n => ({ ...n, read: true }))
       saveNotifications(updated)
       return updated
     })
@@ -79,16 +144,12 @@ const SocketProvider = ({ children }) => {
     localStorage.removeItem('doctor_notifications')
   }
 
-  const markAllRead = () =>
-    setNotifications(prev => {
-      const updated = prev.map(n => ({ ...n, read: true }))
-      saveNotifications(updated)
-      return updated
-    })
-
   const updateAvailability = (status) => {
     if (!profileData?._id) return
-    socket.emit('doctor:availability:update', { doctorId: profileData._id, status })
+    socket.emit('doctor:availability:update', { 
+      doctorId: profileData._id, 
+      status 
+    })
   }
 
   return (

@@ -1,280 +1,458 @@
-import { useEffect, useRef, useState, useContext } from 'react'
-import { useParams, useLocation, useNavigate } from 'react-router-dom'
-import { useSocket } from '../context/SocketContext'
+import React, { useContext, useEffect, useState } from 'react'
 import { DoctorContext } from '../context/DoctorContext'
+import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
+import { toast } from 'react-toastify'
 
-const DoctorChat = () => {
-  const { appointmentId } = useParams()
-  const { state } = useLocation()
+const DocAppoint = () => {
+  const {
+    dtoken,
+    appointments,
+    getAppointments,
+    cancelAppointment,
+    completeAppointment,
+    backend_url,
+  } = useContext(DoctorContext)
+
   const navigate = useNavigate()
-  const { socket } = useSocket()
-  const { dtoken, profileData, backend_url } = useContext(DoctorContext)
 
-  const [messages, setMessages] = useState([])
-  const [input, setInput] = useState('')
-  const [isTyping, setIsTyping] = useState(false)
-  const [typingName, setTypingName] = useState('')
-  const [loading, setLoading] = useState(true)
+  const [openRx, setOpenRx]         = useState(null)   
+  const [viewRx, setViewRx]         = useState(null)   
+  const [rxForms, setRxForms]       = useState({})
 
-  const bottomRef = useRef(null)
-  const typingTimeout = useRef(null)
-
-  const patientName  = state?.patientName  || 'Patient'
-  const patientImage = state?.patientImage || ''
-
-  // load history
   useEffect(() => {
-    const fetchHistory = async () => {
-      try {
-        const { data } = await axios.get(
-          `${backend_url}/api/chat/doctor-history/${appointmentId}`,
-          { headers: { dtoken } }
-        )
-        if (data.success) setMessages(data.messages)
-      } catch (err) {
-        console.error(err)
-      } finally {
-        setLoading(false)
+    if (dtoken) getAppointments()
+  }, [dtoken])
+
+  // ── date helpers ──────────────────────────────────────────────────────────
+  const slotDateFormat = (slotDate) => {
+    if (!slotDate) return ''
+    const months = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    const d = slotDate.split('_')
+    return d[0] + ' ' + months[Number(d[1])] + ' ' + d[2]
+  }
+
+  const calculateAge = (dob) => {
+    if (!dob) return 'N/A'
+    return new Date().getFullYear() - new Date(dob).getFullYear()
+  }
+
+  const isCloudinaryImage = (url) => url && url.includes('cloudinary.com')
+
+  // ── prescription helpers ──────────────────────────────────────────────────
+  const addMedication = (id) => {
+    setRxForms(prev => ({
+      ...prev,
+      [id]: {
+        ...prev[id],
+        medications: [...(prev[id]?.medications || []), { name: '', dosage: '', duration: '' }],
+      },
+    }))
+  }
+
+  const removeMedication = (id, i) => {
+    setRxForms(prev => {
+      const meds = [...(prev[id]?.medications || [])]
+      meds.splice(i, 1)
+      return { ...prev, [id]: { ...prev[id], medications: meds } }
+    })
+  }
+
+  const updateMed = (id, i, field, val) => {
+    setRxForms(prev => {
+      const meds = [...(prev[id]?.medications || [])]
+      meds[i] = { ...meds[i], [field]: val }
+      return { ...prev, [id]: { ...prev[id], medications: meds } }
+    })
+  }
+
+  const sendPrescription = async (id) => {
+    const form = rxForms[id]
+    if (!form?.medications?.length)
+      return toast.error('Add at least one medication')
+    if (form.medications.some(m => !m.name.trim()))
+      return toast.error('Please fill medicine name for all entries')
+
+    try {
+      const { data } = await axios.post(
+        backend_url + '/api/doctor/add-prescription',
+        { appointmentId: id, medications: form.medications, notes: form.notes || '' },
+        { headers: { dtoken } }
+      )
+      if (data.success) {
+        toast.success(data.message)
+        setOpenRx(null)
+        getAppointments()
+      } else {
+        toast.error(data.message)
       }
+    } catch (e) {
+      toast.error(e.message)
     }
-    if (dtoken) fetchHistory()
-  }, [appointmentId, dtoken])
+  }
 
-  // socket
-  useEffect(() => {
-    if (!socket) return
-    socket.emit('chat:join', appointmentId)
-
-    socket.on('chat:receive', (msg) => {
-      setMessages(prev => [...prev, msg])
-    })
-
-    socket.on('chat:typing', ({ userName, isTyping }) => {
-      setIsTyping(isTyping)
-      setTypingName(userName)
-    })
-
-    return () => {
-      socket.emit('chat:leave', appointmentId)
-      socket.off('chat:receive')
-      socket.off('chat:typing')
+  const acceptRefund = async (id) => {
+    try {
+      const { data } = await axios.post(
+        backend_url + '/api/doctor/accept-refund',
+        { appointmentId: id },
+        { headers: { dtoken } }
+      )
+      if (data.success) {
+        toast.success(data.message)
+        getAppointments()
+      } else {
+        toast.error(data.message)
+      }
+    } catch (e) {
+      toast.error(e.message)
     }
-  }, [socket, appointmentId])
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, isTyping])
-
-  const handleTyping = (e) => {
-    setInput(e.target.value)
-    if (!socket || !profileData) return
-    socket.emit('chat:typing', {
-      roomId: appointmentId,
-      userName: profileData?.name || 'Doctor',
-      isTyping: true
-    })
-    clearTimeout(typingTimeout.current)
-    typingTimeout.current = setTimeout(() => {
-      socket.emit('chat:typing', {
-        roomId: appointmentId,
-        userName: profileData?.name || 'Doctor',
-        isTyping: false
-      })
-    }, 1000)
   }
 
-  const sendMessage = () => {
-    if (!input.trim() || !profileData) return
-    socket.emit('chat:send', {
-      roomId: appointmentId,
-      message: input.trim(),
-      senderId: profileData._id,
-      senderName: profileData.name,
-      senderRole: 'doctor',
-      receiverId: state?.patientId
-    })
-    setInput('')
-    socket.emit('chat:typing', {
-      roomId: appointmentId,
-      userName: profileData.name,
-      isTyping: false
-    })
+  // ── toggle helpers (close others when opening one) ────────────────────────
+  const toggleRxForm = (id) => {
+    const next = openRx === id ? null : id
+    setOpenRx(next)
+    setViewRx(null)
+    if (next && !rxForms[id]?.medications?.length) addMedication(id)
   }
 
-  const handleKey = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() }
+  const toggleViewRx = (id) => {
+    setViewRx(viewRx === id ? null : id)
+    setOpenRx(null)
   }
-
-  const formatTime = (ts) => new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-
-  const formatDate = (ts) => {
-    const d = new Date(ts)
-    const today = new Date()
-    const yesterday = new Date(today)
-    yesterday.setDate(yesterday.getDate() - 1)
-    if (d.toDateString() === today.toDateString()) return 'Today'
-    if (d.toDateString() === yesterday.toDateString()) return 'Yesterday'
-    return d.toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' })
-  }
-
-  const grouped = messages.reduce((acc, msg) => {
-    const key = new Date(msg.timestamp).toDateString()
-    if (!acc[key]) acc[key] = []
-    acc[key].push(msg)
-    return acc
-  }, {})
 
   return (
-    <div className='w-full h-screen flex flex-col bg-gray-50 overflow-hidden'>
+    <div className='w-full max-w-6xl m-3 sm:m-5'>
+      <p className='mb-3 text-lg font-medium'>
+        All <span className='text-primary'>Appointments</span>
+      </p>
 
-      {/* Header */}
-      <div className='bg-white border-b border-gray-100 shadow-sm px-4 sm:px-6 py-3 flex items-center gap-3 flex-shrink-0'>
-        <button
-          onClick={() => navigate('/doctor-appointment')}
-          className='p-1.5 rounded-lg hover:bg-gray-100 transition-colors flex-shrink-0'
-        >
-          <svg xmlns='http://www.w3.org/2000/svg' className='w-5 h-5 text-gray-600' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}>
-            <path strokeLinecap='round' strokeLinejoin='round' d='M15 19l-7-7 7-7' />
-          </svg>
-        </button>
+      <div className='bg-white border rounded-xl text-sm max-h-[80vh] min-h-[60vh] overflow-y-auto'>
 
-        {patientImage
-          ? <img src={patientImage} className='w-10 h-10 rounded-full object-cover flex-shrink-0' alt='' />
-          : <div className='w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600 font-semibold flex-shrink-0'>
-              {patientName.charAt(0).toUpperCase()}
-            </div>
-        }
-
-        <div className='flex-1 min-w-0'>
-          <p className='text-sm font-semibold text-gray-800 truncate'>{patientName}</p>
-          <p className='text-xs text-gray-400'>Patient</p>
+        {/* ── desktop header ── */}
+        <div className='hidden sm:grid grid-cols-[0.5fr_3fr_1fr_1fr_3fr_1fr_1.8fr] py-3 px-6 border-b bg-gray-50 font-semibold text-gray-600'>
+          <p>#</p>
+          <p>Patient</p>
+          <p>Payment</p>
+          <p>Age</p>
+          <p>Date & Time</p>
+          <p>Fees</p>
+          <p>Action</p>
         </div>
 
-        <div className='flex items-center gap-1.5 flex-shrink-0'>
-          <span className='w-2 h-2 rounded-full bg-green-400'></span>
-          <span className='text-xs text-gray-400 hidden sm:block'>Online</span>
-        </div>
-      </div>
+        {appointments && appointments.map((item, index) => (
+          <div key={index} className='border-b hover:bg-gray-50 transition-colors duration-200'>
 
-      {/* Messages */}
-      <div className='flex-1 overflow-y-auto px-4 sm:px-8 md:px-16 lg:px-24 py-4 flex flex-col gap-1'>
+            {/* ── refund NOTIFICATION banner (top, eye-catching) ── */}
+            {item.refundStatus === 'requested' && !item.isCompleted && (
+              <div className='mx-4 mt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-amber-50 border border-amber-300 rounded-xl px-4 py-3'>
+                <div className='flex items-start gap-2'>
+                  {/* animated bell dot */}
+                  <span className='relative flex h-5 w-5 mt-0.5 flex-shrink-0'>
+                    <span className='animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75'></span>
+                    <span className='relative inline-flex rounded-full h-5 w-5 bg-amber-500 items-center justify-center text-white text-xs'>!</span>
+                  </span>
+                  <div>
+                    <p className='text-xs font-bold text-amber-800'>Refund Request — Action Required</p>
+                    <p className='text-xs text-amber-700 mt-0.5'>
+                      <span className='font-semibold'>{item.userData.name}</span> cancelled this paid appointment
+                      and is requesting a refund of <span className='font-semibold'>₹{item.amount}</span>.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => acceptRefund(item._id)}
+                  className='text-xs bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-all whitespace-nowrap font-semibold flex-shrink-0'
+                >
+                  ✓ Accept & Process Refund
+                </button>
+              </div>
+            )}
 
-        {loading ? (
-          <div className='flex items-center justify-center flex-1 py-20'>
-            <div className='w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin'></div>
-          </div>
-        ) : messages.length === 0 ? (
-          <div className='flex flex-col items-center justify-center py-20 gap-3'>
-            <div className='w-16 h-16 rounded-full bg-indigo-50 flex items-center justify-center'>
-              <svg xmlns='http://www.w3.org/2000/svg' className='w-8 h-8 text-indigo-400' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
-                <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={1.5} d='M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z' />
-              </svg>
-            </div>
-            <p className='text-gray-500 text-sm font-medium'>No messages yet</p>
-            <p className='text-gray-400 text-xs'>Start the conversation with {patientName}</p>
-          </div>
-        ) : (
-          Object.entries(grouped).map(([dateKey, msgs]) => (
-            <div key={dateKey}>
-              <div className='flex items-center gap-3 my-4'>
-                <div className='flex-1 h-px bg-gray-200'></div>
-                <span className='text-xs text-gray-400 font-medium px-3 py-1 bg-gray-100 rounded-full'>
-                  {formatDate(msgs[0].timestamp)}
-                </span>
-                <div className='flex-1 h-px bg-gray-200'></div>
+            
+
+            {/* ── main row ── */}
+            <div className='flex flex-col gap-3 p-4 sm:grid sm:grid-cols-[0.5fr_3fr_1fr_1fr_3fr_1fr_1.8fr] sm:items-center sm:py-3 sm:px-6 sm:gap-0'>
+
+              {/* # */}
+              <p className='hidden sm:block font-semibold text-gray-500'>{index + 1}</p>
+
+              {/* Patient */}
+              <div className='flex items-center gap-2'>
+                {isCloudinaryImage(item.userData.image) ? (
+                  <img src={item.userData.image} alt='' className='w-9 h-9 rounded-full object-cover flex-shrink-0' />
+                ) : (
+                  <div className='w-9 h-9 rounded-full bg-primary flex items-center justify-center flex-shrink-0'>
+                    <span className='text-white text-sm font-semibold'>
+                      {item.userData.name?.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                )}
+                <div>
+                  <p className='font-medium text-gray-700'>{item.userData.name}</p>
+                  <p className='text-xs text-gray-400 sm:hidden'>Age: {calculateAge(item.userData.dob)}</p>
+                </div>
               </div>
 
-              {msgs.map((msg, i) => {
-                const mine = msg.senderRole === 'doctor'
-                const showAvatar = i === 0 || msgs[i - 1]?.senderRole !== msg.senderRole
-                return (
-                  <div key={msg._id || i} className={`flex items-end gap-2 mb-1 ${mine ? 'flex-row-reverse' : 'flex-row'}`}>
-                    <div className='w-7 h-7 flex-shrink-0'>
-                      {showAvatar && (
-                        mine
-                          ? <div className='w-7 h-7 rounded-full bg-primary flex items-center justify-center text-white text-xs font-semibold'>
-                              {profileData?.name?.charAt(0).toUpperCase() || 'D'}
-                            </div>
-                          : patientImage
-                            ? <img src={patientImage} className='w-7 h-7 rounded-full object-cover' alt='' />
-                            : <div className='w-7 h-7 rounded-full bg-green-100 flex items-center justify-center text-green-600 text-xs font-semibold'>
-                                {patientName.charAt(0).toUpperCase()}
-                              </div>
-                      )}
-                    </div>
+              {/* Payment badge */}
+              <div>
+                <span className={`text-xs font-medium px-2 py-1 rounded-full ${
+                  item.payment
+                    ? 'bg-green-50 border border-green-100 text-green-500'
+                    : 'bg-yellow-50 border border-yellow-100 text-yellow-600'
+                }`}>
+                  {item.payment ? 'Online' : 'Cash'}
+                </span>
+              </div>
 
-                    <div className={`max-w-[70%] sm:max-w-[60%] flex flex-col ${mine ? 'items-end' : 'items-start'}`}>
-                      <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
-                        mine
-                          ? 'bg-primary text-white rounded-br-sm'
-                          : 'bg-white text-gray-800 border border-gray-100 shadow-sm rounded-bl-sm'
-                      }`}>
-                        {msg.message}
-                      </div>
-                      <span className='text-[10px] text-gray-400 mt-1 px-1'>
-                        {formatTime(msg.timestamp)}
-                      </span>
-                    </div>
+              {/* Age */}
+              <p className='hidden sm:block text-gray-600'>{calculateAge(item.userData.dob)}</p>
+
+              {/* Date & Time */}
+              <div>
+                <p className='text-xs text-gray-400 sm:hidden font-semibold uppercase tracking-wide mb-0.5'>Date & Time</p>
+                <p className='text-gray-600'>{slotDateFormat(item.slotDate)} | {item.slotTime}</p>
+              </div>
+
+              {/* Fees */}
+              <div>
+                <p className='text-xs text-gray-400 sm:hidden font-semibold uppercase tracking-wide mb-0.5'>Fees</p>
+                <p className='font-semibold text-gray-600'>₹{item.amount}</p>
+              </div>
+
+              {/* ── ACTION COLUMN ── */}
+              <div className='flex flex-wrap items-center gap-1.5'>
+
+                {/* ── CANCELLED state ── */}
+                {item.cancelled ? (
+                  <div className='flex flex-col gap-1'>
+                    <span className='text-red-400 text-xs font-medium bg-red-50 px-2 py-1 rounded-full'>
+                      Cancelled
+                    </span>
+                    {/* view prescription even after cancel (if sent before cancel — edge case) */}
+                    {item.prescriptionSent && (
+                      <button
+                        onClick={() => toggleViewRx(item._id)}
+                        className='text-xs px-2 py-1 rounded-full border border-indigo-300 text-indigo-500 hover:bg-indigo-50 transition-all whitespace-nowrap'
+                      >
+                        {viewRx === item._id ? 'Hide Rx' : 'View Rx'}
+                      </button>
+                    )}
                   </div>
-                )
-              })}
-            </div>
-          ))
-        )}
 
-        {isTyping && (
-          <div className='flex items-end gap-2 mb-1'>
-            {patientImage
-              ? <img src={patientImage} className='w-7 h-7 rounded-full object-cover flex-shrink-0' alt='' />
-              : <div className='w-7 h-7 rounded-full bg-green-100 flex items-center justify-center text-xs font-semibold text-green-600 flex-shrink-0'>
-                  {patientName.charAt(0).toUpperCase()}
-                </div>
-            }
-            <div className='bg-white border border-gray-100 shadow-sm rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-1'>
-              <span className='w-2 h-2 rounded-full bg-gray-400 animate-bounce' style={{ animationDelay: '0ms' }}></span>
-              <span className='w-2 h-2 rounded-full bg-gray-400 animate-bounce' style={{ animationDelay: '150ms' }}></span>
-              <span className='w-2 h-2 rounded-full bg-gray-400 animate-bounce' style={{ animationDelay: '300ms' }}></span>
+                ) : item.isCompleted ? (
+                  // ── COMPLETED state ──
+                  <div className='flex flex-wrap gap-1.5 items-center'>
+                    <span className='text-green-500 text-xs font-medium bg-green-50 px-2 py-1 rounded-full'>
+                      Completed
+                    </span>
+                    {item.prescriptionSent && (
+                      <button
+                        onClick={() => toggleViewRx(item._id)}
+                        className='text-xs px-2 py-1 rounded-full border border-indigo-300 text-indigo-500 hover:bg-indigo-50 transition-all whitespace-nowrap'
+                      >
+                        {viewRx === item._id ? 'Hide Prescription' : 'View Prescription'}
+                      </button>
+                    )}
+                  </div>
+
+                ) : (
+                  // ── ACTIVE appointment ──
+                  <>
+                    {/* JOIN consultation — only if paid AND no refund requested */}
+                    {item.payment && item.refundStatus !== 'requested' && item.refundStatus !== 'processed' && (
+                      <button
+                        onClick={() => navigate(`/doctor-chat/${item._id}`)}
+                        className='text-xs px-2.5 py-1.5 rounded-full border border-blue-400 text-blue-500 hover:bg-blue-500 hover:text-white transition-all whitespace-nowrap'
+                      >
+                        💬 Chat
+                      </button>
+                    )}
+
+                    {/* ADD PRESCRIPTION — paid, no refund, not sent yet */}
+                    {item.payment && !item.prescriptionSent
+                      && item.refundStatus !== 'requested'
+                      && item.refundStatus !== 'processed' && (
+                      <button
+                        onClick={() => toggleRxForm(item._id)}
+                        className='text-xs px-2.5 py-1.5 rounded-full border border-indigo-400 text-indigo-500 hover:bg-indigo-500 hover:text-white transition-all whitespace-nowrap'
+                      >
+                        {openRx === item._id ? 'Close ✕' : 'Add Prescription'}
+                      </button>
+                    )}
+
+                    {/* PRESCRIPTION SENT label + view button */}
+                    {item.prescriptionSent && (
+                      <button
+                        onClick={() => toggleViewRx(item._id)}
+                        className='text-xs px-2.5 py-1.5 rounded-full border border-indigo-300 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-all whitespace-nowrap'
+                      >
+                        {viewRx === item._id ? 'Hide Prescription ✕' : '✓ View Prescription'}
+                      </button>
+                    )}
+
+                    {/* CANCEL — hide after prescription sent or refund in progress */}
+                    {!item.prescriptionSent
+                      && item.refundStatus !== 'requested'
+                      && item.refundStatus !== 'processed' && (
+                      <button
+                        onClick={() => cancelAppointment(item._id)}
+                        title='Cancel appointment'
+                        className='w-7 h-7 flex items-center justify-center rounded-full border border-red-300 text-red-400 hover:bg-red-400 hover:text-white transition-all text-xs'
+                      >
+                        ✕
+                      </button>
+                    )}
+
+                    {/* COMPLETE — available unless refund in progress */}
+                    {item.refundStatus !== 'requested' && item.refundStatus !== 'processed' && (
+                      <button
+                        onClick={() => completeAppointment(item._id)}
+                        title='Mark complete'
+                        className='w-7 h-7 flex items-center justify-center rounded-full border border-green-300 text-green-500 hover:bg-green-500 hover:text-white transition-all text-xs'
+                      >
+                        ✓
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
-            <span className='text-xs text-gray-400'>{typingName} is typing…</span>
+
+            {/* ── VIEW PRESCRIPTION panel ── */}
+            {viewRx === item._id && item.prescription && (
+              <div className='mx-4 mb-4 p-4 bg-white border border-indigo-100 rounded-xl shadow-sm'>
+                <div className='flex items-center justify-between mb-3'>
+                  <p className='text-sm font-bold text-gray-700'>
+                    ℞ Prescription — {item.userData.name}
+                  </p>
+                  <button
+                    onClick={() => setViewRx(null)}
+                    className='text-gray-400 hover:text-gray-600 text-lg leading-none'
+                  >×</button>
+                </div>
+
+                <div className='space-y-1.5 mb-3'>
+                  {item.prescription.medications?.map((med, i) => (
+                    <div key={i} className='flex flex-wrap gap-3 bg-indigo-50 rounded-lg px-3 py-2 text-xs text-gray-700'>
+                      <span className='font-semibold text-indigo-700'>{i + 1}. {med.name}</span>
+                      {med.dosage   && <span className='text-gray-500'>Dosage: <span className='font-medium text-gray-700'>{med.dosage}</span></span>}
+                      {med.duration && <span className='text-gray-500'>Duration: <span className='font-medium text-gray-700'>{med.duration}</span></span>}
+                    </div>
+                  ))}
+                </div>
+
+                {item.prescription.notes && (
+                  <div className='bg-gray-50 rounded-lg px-3 py-2 text-xs text-gray-600'>
+                    <span className='font-semibold text-gray-700'>Notes: </span>
+                    {item.prescription.notes}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── WRITE PRESCRIPTION form ── */}
+            {openRx === item._id && (
+              <div className='mx-4 mb-4 p-4 bg-indigo-50 border border-indigo-100 rounded-xl'>
+                <p className='text-sm font-semibold text-gray-700 mb-3'>
+                  Write Prescription for {item.userData.name}
+                </p>
+
+                {(rxForms[item._id]?.medications || []).map((med, i) => (
+                  <div key={i} className='flex gap-2 mb-2 flex-wrap items-center'>
+                    <input
+                      placeholder='Medicine name *'
+                      value={med.name}
+                      onChange={e => updateMed(item._id, i, 'name', e.target.value)}
+                      className='border rounded-lg px-3 py-1.5 text-sm flex-1 min-w-[140px] bg-white focus:outline-none focus:border-indigo-400'
+                    />
+                    <input
+                      placeholder='Dosage e.g. 500mg'
+                      value={med.dosage}
+                      onChange={e => updateMed(item._id, i, 'dosage', e.target.value)}
+                      className='border rounded-lg px-3 py-1.5 text-sm w-32 bg-white focus:outline-none focus:border-indigo-400'
+                    />
+                    <input
+                      placeholder='Duration e.g. 5 days'
+                      value={med.duration}
+                      onChange={e => updateMed(item._id, i, 'duration', e.target.value)}
+                      className='border rounded-lg px-3 py-1.5 text-sm w-32 bg-white focus:outline-none focus:border-indigo-400'
+                    />
+                    {(rxForms[item._id]?.medications || []).length > 1 && (
+                      <button
+                        onClick={() => removeMedication(item._id, i)}
+                        className='text-red-400 hover:text-red-600 text-xl leading-none px-1'
+                        title='Remove'
+                      >×</button>
+                    )}
+                  </div>
+                ))}
+
+                <button
+                  onClick={() => addMedication(item._id)}
+                  className='text-xs text-indigo-500 hover:text-indigo-700 hover:underline mb-3 block font-medium'
+                >
+                  + Add another medicine
+                </button>
+
+                <textarea
+                  placeholder='Doctor notes / advice (optional)'
+                  value={rxForms[item._id]?.notes || ''}
+                  onChange={e => setRxForms(prev => ({
+                    ...prev,
+                    [item._id]: { ...prev[item._id], notes: e.target.value },
+                  }))}
+                  className='w-full border rounded-lg px-3 py-2 text-sm mb-3 resize-none bg-white focus:outline-none focus:border-indigo-400'
+                  rows={2}
+                />
+
+                <div className='flex gap-2'>
+                  <button
+                    onClick={() => sendPrescription(item._id)}
+                    className='bg-green-500 text-white text-sm px-5 py-2 rounded-lg hover:bg-green-600 transition-all font-medium'
+                  >
+                    Send to Patient ✓
+                  </button>
+                  <button
+                    onClick={() => setOpenRx(null)}
+                    className='border border-gray-300 text-gray-500 text-sm px-4 py-2 rounded-lg hover:bg-gray-100 transition-all'
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+
+                   {/* refund processed confirmation */}
+            {item.refundStatus === 'processed' && (
+              <div className='mx-4 mb-3 bg-green-50 border border-green-200 rounded-lg px-4 py-2 text-xs text-green-700 font-medium flex items-center gap-2'>
+                <span>✅</span>
+                <span>Refund of ₹{item.amount} approved and processed for {item.userData.name}.</span>
+              </div>
+            )}
+
+          </div>
+        ))}
+
+
+
+        {/* ── empty state ── */}
+        {(!appointments || appointments.length === 0) && (
+          <div className='flex flex-col items-center justify-center h-40 text-gray-400 gap-2'>
+            <svg className='w-10 h-10 text-gray-300' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+              <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={1.5}
+                d='M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' />
+            </svg>
+            <p className='text-sm'>No appointments found</p>
           </div>
         )}
 
-        <div ref={bottomRef} />
       </div>
-
-      {/* Input */}
-      <div className='bg-white border-t border-gray-100 px-4 sm:px-8 md:px-16 lg:px-24 py-3 flex-shrink-0'>
-        <div className='flex items-end gap-3'>
-          <textarea
-            value={input}
-            onChange={handleTyping}
-            onKeyDown={handleKey}
-            placeholder={`Message ${patientName}…`}
-            rows={1}
-            className='flex-1 resize-none border border-gray-200 rounded-2xl px-4 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-primary transition-colors leading-relaxed max-h-32 overflow-y-auto'
-            onInput={e => {
-              e.target.style.height = 'auto'
-              e.target.style.height = Math.min(e.target.scrollHeight, 128) + 'px'
-            }}
-          />
-          <button
-            onClick={sendMessage}
-            disabled={!input.trim()}
-            className='w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center hover:opacity-90 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0 mb-0.5'
-          >
-            <svg xmlns='http://www.w3.org/2000/svg' className='w-4 h-4 rotate-90' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}>
-              <path strokeLinecap='round' strokeLinejoin='round' d='M12 19l9 2-9-18-9 18 9-2zm0 0v-8' />
-            </svg>
-          </button>
-        </div>
-        <p className='text-[10px] text-gray-400 mt-1.5 text-center'>
-          Press Enter to send · Shift+Enter for new line
-        </p>
-      </div>
-
     </div>
   )
 }
 
-export default DoctorChat
+export default DocAppoint
