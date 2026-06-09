@@ -26,8 +26,8 @@ const AppContextProvider = ({ children }) => {
       toast.error(error.message)
     }
   }
-  // if this logs undefined, that's your problem
-console.log(import.meta.env.VITE_BACKEND_URL)
+ 
+
 
 useEffect(() => {
   getDoctorData()

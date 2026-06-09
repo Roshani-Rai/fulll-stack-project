@@ -35,9 +35,9 @@ export const SocketProvider = ({ children }) => {
     socket.on('notification', (data) => {
       const newNotif = {
         ...data,
-        id: Date.now(),
+        id: data.id || `notif_${Date.now()}`,
         read: false,
-        createdAt: data.createdAt || new Date().toISOString(),
+        createdAt: data.createdAt || data.timestamp || new Date().toISOString(), // ✅ fixed
       }
       setNotifications(prev => {
         const updated = [newNotif, ...prev]
@@ -56,10 +56,11 @@ export const SocketProvider = ({ children }) => {
       socket.disconnect()
     }
   }, [userData?._id])
+  
 
   const markAsRead = (id) =>
     setNotifications(prev => {
-      const updated = prev.map(n => n.id === id ? { ...n, read: true } : n)
+      const updated = prev.map(n => String(n.id) === String(id) ? { ...n, read: true } : n) // ✅ fixed
       saveNotifications(updated)
       return updated
     })
