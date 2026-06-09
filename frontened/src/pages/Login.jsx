@@ -24,6 +24,7 @@ const Login = () => {
           toast.success("Account created Successfully!!")
           localStorage.setItem('token',data.token)
           setToken(data.token)
+          navigate('/')
         }
         else{
           toast.error(data.message)
@@ -35,6 +36,7 @@ const Login = () => {
           toast.success("User logged in Successfully!!")
           localStorage.setItem('token',data.token)
           setToken(data.token)
+          navigate('/')
         }
         else{
           toast.error(data.message)

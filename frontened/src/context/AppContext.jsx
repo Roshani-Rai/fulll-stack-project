@@ -13,6 +13,7 @@ const AppContextProvider = ({ children }) => {
   const [token, setToken] = useState(localStorage.getItem('token') || '')
   const [userData, setUserData] = useState(null)
 
+  
   const getDoctorData = async () => {
     try {
       const { data } = await axios.get(backend_url + '/api/doctor/list')
@@ -25,6 +26,8 @@ const AppContextProvider = ({ children }) => {
       toast.error(error.message)
     }
   }
+  // if this logs undefined, that's your problem
+console.log(import.meta.env.VITE_BACKEND_URL)
 
 useEffect(() => {
   getDoctorData()
