@@ -17,7 +17,8 @@ import {ToastContainer , toast} from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
-
+import {SocketProvider} from './context/SocketContext.jsx'
+import Chat from './pages/Chat'
 
 const router = createBrowserRouter([
   {
@@ -126,14 +127,26 @@ const router = createBrowserRouter([
       </>
     )
   },
+  {
+  path: '/chat/:appointmentId',
+  element: (
+    <>
+      <Navbar />
+      <Chat />
+      <Footer />
+    </>
+  )
+}
  
 ])
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <AppContextProvider>
+       <SocketProvider>   
   <RouterProvider router={router} />
   <ToastContainer />
+    </SocketProvider>     
 </AppContextProvider>
   </StrictMode>
 )

@@ -174,6 +174,43 @@ const MyAppointments = () => {
                   ✓ Paid
                 </button>
               )}
+               
+
+              {!item.cancelled && item.payment && !item.isCompleted &&
+ item.refundStatus !== 'requested' && item.refundStatus !== 'processed' && (
+  <button
+    onClick={() => navigate(`/chat/${item._id}`, {
+      state: {
+        appointmentId: item._id,
+        doctorName: item.docData.name,
+        doctorImage: item.docData.image,
+        doctorSpeciality: item.docData.speciality,
+        doctorId: item.docId
+      }
+    })}
+    className='border border-indigo-500 text-indigo-600 text-sm px-5 py-2 font-medium rounded-lg hover:bg-indigo-500 hover:text-white transition-all whitespace-nowrap flex items-center gap-1.5'
+  >
+    <svg xmlns='http://www.w3.org/2000/svg' className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}>
+      <path strokeLinecap='round' strokeLinejoin='round' d='M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z' />
+    </svg>
+    Chat
+  </button>
+)}
+
+{/* Disabled chat — refund requested or processed */}
+{!item.cancelled && item.payment &&
+ (item.refundStatus === 'requested' || item.refundStatus === 'processed') && (
+  <button
+    disabled
+    className='border border-gray-200 text-gray-400 text-sm px-5 py-2 font-medium rounded-lg bg-gray-50 whitespace-nowrap flex items-center gap-1.5 cursor-not-allowed'
+  >
+    <svg xmlns='http://www.w3.org/2000/svg' className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}>
+      <path strokeLinecap='round' strokeLinejoin='round' d='M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z' />
+    </svg>
+    Chat Disabled
+  </button>
+)}
+
 
               {/* Download PDF — prescription sent, not yet completed */}
               {!item.cancelled && item.prescriptionSent && !item.isCompleted && (

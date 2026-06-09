@@ -4,8 +4,27 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { useContext } from 'react'
 import { AppContext } from '../context/AppContext'
 import AIChatModal from './AIChatModal';
+import NotificationBell from './NotificationBail.jsx';
+import { useSocket } from '../context/SocketContext'
+
 
 const Navbar = () => {
+
+  const { notifications } = useSocket()
+  const mobileUnread = notifications.filter(n => !n.read).length
+
+  const MobileBellBadge = () => mobileUnread > 0 ? (
+    <span className='absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-semibold rounded-full min-w-[16px] h-[16px] flex items-center justify-center px-0.5 border-2 border-white z-10'>
+      {mobileUnread > 9 ? '9+' : mobileUnread}
+    </span>
+  ) : null
+
+  const MobileUnreadCount = () => mobileUnread > 0 ? (
+    <span className='bg-red-100 text-red-600 text-xs font-semibold px-2 py-0.5 rounded-full'>
+      {mobileUnread}
+    </span>
+  ) : null
+
   const { token, setToken, user } = useContext(AppContext)
 
   const navigate = useNavigate();
@@ -48,10 +67,17 @@ const Navbar = () => {
             className='hidden md:flex items-center gap-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 px-3 py-2 rounded-full text-sm font-medium transition-all duration-200 border border-blue-200 hover:scale-105'
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
             </svg>
             <span>AI Assistant</span>
           </button>
+
+          {/* Desktop: Notification Bell — only when logged in */}
+          {token && (
+            <div className='hidden md:flex'>
+              <NotificationBell />
+            </div>
+          )}
 
           {token ? (
             <div className="flex flex-row items-center gap-2 cursor-pointer group relative">
@@ -135,20 +161,19 @@ const Navbar = () => {
           ))}
         </ul>
 
-        {/* ── BOTTOM SECTION — pushes to bottom with mt-auto ── */}
+        {/* ── BOTTOM SECTION ── */}
         <div className='mt-auto px-4 pb-8 flex flex-col gap-3'>
 
-          {/* Divider */}
           <div className='border-t border-gray-100 mb-1' />
 
-          {/* AI Health Assistant — pinned at bottom */}
+          {/* AI Health Assistant */}
           <button
             onClick={() => { setShowMenu(false); setShowChat(true); }}
             className='w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-blue-50 border border-blue-200 text-blue-600 hover:bg-blue-100 transition-all duration-200 group'
           >
             <div className='w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-200'>
               <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
               </svg>
             </div>
             <div className='text-left'>
@@ -156,18 +181,63 @@ const Navbar = () => {
               <p className='text-xs text-blue-400'>Ask symptoms, get guidance</p>
             </div>
             <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 ml-auto text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 18l6-6-6-6"/>
+              <path d="M9 18l6-6-6-6" />
             </svg>
           </button>
 
-          {/* Create Account button (if not logged in) */}
-          {!token && (
+          {/* Notifications row — only when logged in */}
+          {token && (
+            <button
+              onClick={() => setShowMenu(false)}
+              className='w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-gray-50 border border-gray-200 hover:bg-gray-100 transition-all duration-200 cursor-pointer'
+            >
+              {/* Bell icon with badge */}
+              <div className='relative w-9 h-9 rounded-xl bg-white border border-gray-200 flex items-center justify-center flex-shrink-0'>
+                <svg xmlns='http://www.w3.org/2000/svg' className='w-5 h-5 text-gray-600' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={1.8}>
+                  <path strokeLinecap='round' strokeLinejoin='round' d='M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 00-5-5.917V4a1 1 0 10-2 0v1.083A6 6 0 006 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9' />
+                </svg>
+                <MobileBellBadge />
+              </div>
+
+              <div className='text-left flex-1'>
+                <p className='text-sm font-semibold text-gray-700'>Notifications</p>
+                <p className='text-xs text-gray-400'>Appointments, prescriptions & more</p>
+              </div>
+              <MobileUnreadCount />
+            </button>
+          )}
+
+          {/* Profile / Login */}
+          {token ? (
+            <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-gray-50 border border-gray-200">
+              <img className='w-9 h-9 rounded-full object-cover flex-shrink-0' src={profileImage} alt="profile" />
+              <div className='flex-1 text-left'>
+                <p className='text-sm font-semibold text-gray-700 truncate'>{user?.name || 'My Account'}</p>
+                <p className='text-xs text-gray-400'>View profile & appointments</p>
+              </div>
+              <div className='flex flex-col gap-1'>
+                <button
+                  onClick={() => { navigate('/my-profile'); setShowMenu(false); }}
+                  className='text-xs text-primary font-medium hover:underline'
+                >
+                  Profile
+                </button>
+                <button
+                  onClick={() => { logout(); setShowMenu(false); }}
+                  className='text-xs text-red-500 font-medium hover:underline'
+                >
+                  Logout
+                </button>
+              </div>
+            </div>
+          ) : (
             <button
               onClick={() => { navigate('/login'); setShowMenu(false); }}
               className='w-full bg-primary text-white py-3 rounded-full text-sm font-semibold hover:bg-blue-600 transition-all duration-300'>
               Create Account
             </button>
           )}
+
         </div>
       </div>
 
