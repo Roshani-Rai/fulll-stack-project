@@ -130,7 +130,7 @@ export const appointmentCancel = async (req, res) => {
         type: 'appointment_cancelled',
         title: '❌ Appointment Cancelled',
         icon: '❌',
-        message: `Dr. ${appointmentData.docData?.name} cancelled your appointment on ${slotDate} at ${slotTime}.`,
+        message: `Dr. ${appointmentData.docData?.name} cancelled your appointment on ${slotDate} at ${slotTime} and refund will be initiated soon.`,
         data: { appointmentId }
       })
 
@@ -247,6 +247,15 @@ export const rateDoctor = async (req, res) => {
     doctor.rating = parseFloat((total / doctor.reviews.length).toFixed(1))
     doctor.totalRatings = doctor.reviews.length
     await doctor.save()
+
+    // 🔔 Notify doctor about new review
+    getIO(req).emitToDoctor(docId, 'notification', {
+      type: 'new_review',
+      title: '⭐ New Rating Received',
+      icon: '⭐',
+      message: `${user?.name || 'A patient'} gave you a ${rating}-star rating.`,
+      data: { docId, rating, review }
+    })
 
     res.json({ success: true, message: 'Rating submitted!', newRating: doctor.rating, totalRatings: doctor.totalRatings })
   } catch (error) {
@@ -373,8 +382,8 @@ export const bookAppointment = async (req, res) => {
       data: { appointmentId: newAppointment._id }
     })
 
-    // 🔔 Notify doctor
-    io.emitToUser(docId, 'notification', {
+    // 🔔 Notify doctor  ← was emitToUser(docId) before, now correctly emitToDoctor
+    io.emitToDoctor(docId, 'notification', {
       type: 'appointment_booked',
       title: '🔔 New Appointment',
       icon: '🔔',
@@ -408,8 +417,8 @@ export const cancelAppointment = async (req, res) => {
       await doctorModel.findByIdAndUpdate(docId, { slots_booked })
     }
 
-    // 🔔 Notify doctor
-    getIO(req).emitToUser(docId, 'notification', {
+    // 🔔 Notify doctor  ← was emitToUser(docId) before, now correctly emitToDoctor
+    getIO(req).emitToDoctor(docId, 'notification', {
       type: 'appointment_cancelled',
       title: '❌ Appointment Cancelled',
       icon: '❌',
@@ -438,8 +447,8 @@ export const requestRefund = async (req, res) => {
 
     await appointmentModel.findByIdAndUpdate(appointmentId, { refundStatus: 'requested' })
 
-    // 🔔 Notify doctor
-    getIO(req).emitToUser(appointment.docId, 'notification', {
+    // 🔔 Notify doctor  ← was emitToUser(docId) before, now correctly emitToDoctor
+    getIO(req).emitToDoctor(appointment.docId, 'notification', {
       type: 'refund_requested',
       title: '💸 Refund Requested',
       icon: '💸',
@@ -475,8 +484,8 @@ export const confirmPayment = async (req, res) => {
       data: { appointmentId, amount: appointment.amount }
     })
 
-    // 🔔 Notify doctor
-    io.emitToUser(appointment.docId, 'notification', {
+    // 🔔 Notify doctor  ← was emitToUser(docId) before, now correctly emitToDoctor
+    io.emitToDoctor(appointment.docId, 'notification', {
       type: 'payment_received',
       title: '💳 Payment Received',
       icon: '💳',
@@ -490,4 +499,3 @@ export const confirmPayment = async (req, res) => {
     res.json({ success: false, message: error.message })
   }
 }
-
