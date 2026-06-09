@@ -26,6 +26,10 @@ const AppContextProvider = ({ children }) => {
     }
   }
 
+useEffect(() => {
+  getDoctorData()
+}, [])
+
   const loadUserProfile = async () => {
     try {
       const { data } = await axios.get(backend_url + '/api/user/get-profile', { headers: { token } })
