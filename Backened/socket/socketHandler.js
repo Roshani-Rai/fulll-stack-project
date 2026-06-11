@@ -13,7 +13,8 @@ const socketHandler = (io) => {
       onlineUsers.set(id, socket.id)
       socket.userId = id
       socket.userRole = 'user'
-      socket.join(`user:${id}`)
+      socket.join(`user:${id}`)      // for receiving notifications via emitToUser()
+      socket.join(`patient:${id}`)   // dedicated patient room (mirrors doctor:join pattern)
       console.log(`user:join → ${id}`)
     })
 
@@ -56,11 +57,17 @@ const socketHandler = (io) => {
         // Send notification only if receiver is NOT currently in the chat room
         if (receiverId) {
           const roomSockets = io.sockets.adapter.rooms.get(`chat:${roomId}`)
-          const receiverInRoom =
-            roomSockets &&
-            [...roomSockets].some(
-              (sid) => io.sockets.sockets.get(sid)?.userId === String(receiverId)
-            )
+
+          // Safely check if receiver is in the room (explicit false if room doesn't exist)
+          const receiverInRoom = roomSockets
+            ? [...roomSockets].some(
+                (sid) => io.sockets.sockets.get(sid)?.userId === String(receiverId)
+              )
+            : false
+
+          console.log(
+            `chat:send → receiverId: ${receiverId}, receiverInRoom: ${receiverInRoom}, roomSockets count: ${roomSockets?.size ?? 0}`
+          )
 
           if (!receiverInRoom) {
             const notifPayload = {
@@ -74,8 +81,13 @@ const socketHandler = (io) => {
               data: { roomId, senderId, senderName }
             }
 
-            // Works for both users and doctors since both join user:<id> room
-            io.to(`user:${receiverId}`).emit('notification', notifPayload)
+            // ✅ Emit to BOTH user:<id> and doctor:<id> / patient:<id> rooms
+            // This ensures notification reaches receiver regardless of their role
+            // or which join event they used on the frontend
+            io.to(`user:${receiverId}`)
+              .to(`doctor:${receiverId}`)
+              .to(`patient:${receiverId}`)
+              .emit('notification', notifPayload)
           }
         }
       } catch (err) {
@@ -105,6 +117,8 @@ const socketHandler = (io) => {
 
   /**
    * Send a notification to a patient/user.
+   * Emits to both user:<id> and patient:<id> rooms so it works regardless
+   * of which join event the frontend called.
    * @param {string|number} userId
    * @param {string} event   - e.g. 'notification'
    * @param {object} data    - notification payload (type, title, message, icon, data)
@@ -117,7 +131,8 @@ const socketHandler = (io) => {
       read: false,
     }
     console.log(`emitToUser → userId: ${userId}, event: ${event}`)
-    io.to(`user:${userId}`).emit(event, payload)
+    // ✅ Emit to both rooms for reliability
+    io.to(`user:${userId}`).to(`patient:${userId}`).emit(event, payload)
   }
 
   /**
@@ -136,6 +151,7 @@ const socketHandler = (io) => {
       read: false,
     }
     console.log(`emitToDoctor → doctorId: ${doctorId}, event: ${event}`)
+    // ✅ Emit to both rooms for reliability
     io.to(`doctor:${doctorId}`).to(`user:${doctorId}`).emit(event, payload)
   }
 }
