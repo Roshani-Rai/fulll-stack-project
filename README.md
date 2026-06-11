@@ -178,10 +178,6 @@ All open-source contributors
 
 📊 Project Statistics
 
-Frontend Components: 20+
-API Endpoints: 25+
-Database Models: 8
-Supported Languages: 2
-Active Features: 15+
+
 Made with ❤️ by [Roshani Rai]
 Star ⭐ this repository if you find it helpful!
